@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
+from django.http import JsonResponse
 from django.db import connection
 from django.middleware.csrf import get_token
 from rest_framework import status
@@ -481,6 +482,5 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
-@api_view(["GET"])
 def test_env(request):
-    return Response({"test": "working"})
+    return JsonResponse({"test": "working"})
