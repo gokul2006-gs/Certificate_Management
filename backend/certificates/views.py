@@ -15,8 +15,13 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from accounts.models import Student
-from .models import Certificate
+from .models import Certificate, CertificateGenerationJob
 from .serializers import CertificateSerializer
+from .services import (
+    generate_for_students,
+    process_generation_job_batch,
+    serialize_generation_job,
+)
 
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
@@ -424,33 +429,8 @@ def generate_certificates_from_template(request):
     if not students.exists():
         return Response({"error": "No students found to generate certificates for"}, status=status.HTTP_400_BAD_REQUEST)
 
-    created = []
-    skipped = []
-
     try:
-        for student in students:
-            try:
-                template_file.seek(0)
-                generated_file = _generated_certificate_file(student, template_file, issue_date)
-                certificate, verification_url = _create_certificate(
-                    student,
-                    generated_file,
-                    generated_file.name,
-                )
-                created.append({
-                    "student_id": student.student_id,
-                    "student_name": student.name,
-                    "certificate": _absolute_media_url(request, certificate.certificate_file),
-                    "download_url": _download_url(request, student.student_id),
-                    "qr": _absolute_media_url(request, certificate.qr_code),
-                    "verification_url": verification_url,
-                })
-            except Exception as exc:
-                skipped.append({
-                    "student_id": student.student_id,
-                    "student_name": student.name,
-                    "reason": str(exc),
-                })
+        created, skipped = generate_for_students(template_file, issue_date, students, request)
     except Exception as exc:
         return Response(
             {"error": f"Certificate generation failed: {exc}"},
@@ -464,6 +444,86 @@ def generate_certificates_from_template(request):
         "created": created,
         "skipped": skipped,
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+def create_generation_job(request):
+    if not _admin_required(request):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    template_file = request.FILES.get("template_file")
+    if not template_file:
+        return Response({"error": "Upload a blank certificate template"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not template_file.name.lower().endswith((".jpg", ".jpeg", ".png")):
+        return Response(
+            {"error": "Template must be a JPG or PNG image"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+    student_ids = [value.strip() for value in request.data.getlist("student_ids") if value.strip()]
+    if not student_ids:
+        student_ids = list(
+            Student.objects.order_by("student_id").values_list("student_id", flat=True)
+        )
+
+    if not student_ids:
+        return Response({"error": "No students found to generate certificates for"}, status=status.HTTP_400_BAD_REQUEST)
+
+    job = CertificateGenerationJob.objects.create(
+        template_file=template_file,
+        issue_date=issue_date,
+        student_ids=student_ids,
+    )
+    return Response(
+        serialize_generation_job(job, request),
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["GET"])
+def poll_generation_job(request, job_id):
+    if not _admin_required(request):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        job = CertificateGenerationJob.objects.get(pk=job_id)
+    except CertificateGenerationJob.DoesNotExist:
+        return Response({"error": "Generation job not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    recent_created = []
+    recent_skipped = []
+    if job.status in {
+        CertificateGenerationJob.STATUS_PENDING,
+        CertificateGenerationJob.STATUS_PROCESSING,
+    }:
+        recent_created, recent_skipped = process_generation_job_batch(job, request)
+
+    return Response(serialize_generation_job(job, request, recent_created, recent_skipped))
+
+
+@api_view(["POST"])
+def cancel_generation_job(request, job_id):
+    if not _admin_required(request):
+        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        job = CertificateGenerationJob.objects.get(pk=job_id)
+    except CertificateGenerationJob.DoesNotExist:
+        return Response({"error": "Generation job not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if job.status in {
+        CertificateGenerationJob.STATUS_COMPLETED,
+        CertificateGenerationJob.STATUS_FAILED,
+        CertificateGenerationJob.STATUS_CANCELLED,
+    }:
+        return Response(serialize_generation_job(job, request))
+
+    job.status = CertificateGenerationJob.STATUS_CANCELLED
+    job.completed_at = timezone.now()
+    job.save(update_fields=["status", "completed_at", "updated_at"])
+    return Response(serialize_generation_job(job, request))
 
 
 @api_view(["GET"])

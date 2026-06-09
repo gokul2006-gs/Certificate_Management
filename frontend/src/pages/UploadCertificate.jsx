@@ -3,7 +3,7 @@ import { BadgeCheck, Download, FileUp, Files, Upload } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api, { formatApiError, getCsrfToken } from "../services/api";
 
-const TEMPLATE_BATCH_SIZE = 5;
+const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 function UploadCertificate() {
   const [students, setStudents] = useState([]);
@@ -22,6 +22,8 @@ function UploadCertificate() {
   const [loading, setLoading] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateProgress, setTemplateProgress] = useState(0);
+  const [activeJobId, setActiveJobId] = useState(null);
 
   useEffect(() => {
     api.get("/accounts/students/").then((response) => setStudents(response.data));
@@ -94,6 +96,22 @@ if (fileInput) {
     }
   };
 
+  const handleCancelGeneration = async () => {
+    if (!activeJobId) return;
+
+    try {
+      await getCsrfToken();
+      await api.post(`/certificates/generation-jobs/${activeJobId}/cancel/`);
+      setTemplateMessage("Certificate generation cancelled.");
+    } catch (err) {
+      setTemplateMessage(formatApiError(err, "Unable to cancel generation"));
+    } finally {
+      setTemplateLoading(false);
+      setActiveJobId(null);
+      setTemplateProgress(0);
+    }
+  };
+
   const handleTemplateGenerate = async (event) => {
     event.preventDefault();
     if (!templateFile) return;
@@ -103,8 +121,10 @@ if (fileInput) {
     }
 
     setTemplateLoading(true);
-    setTemplateMessage("");
+    setTemplateMessage("Starting background certificate generation...");
     setTemplateResult(null);
+    setTemplateProgress(0);
+    setActiveJobId(null);
 
     const aggregated = {
       created: [],
@@ -116,21 +136,42 @@ if (fileInput) {
     try {
       await getCsrfToken();
 
-      const studentIds = students.map((student) => student.student_id);
-      for (let index = 0; index < studentIds.length; index += TEMPLATE_BATCH_SIZE) {
-        const batch = studentIds.slice(index, index + TEMPLATE_BATCH_SIZE);
-        const formData = new FormData();
-        formData.append("template_file", templateFile);
-        formData.append("issue_date", issueDate);
-        batch.forEach((studentId) => formData.append("student_ids", studentId));
+      const formData = new FormData();
+      formData.append("template_file", templateFile);
+      formData.append("issue_date", issueDate);
+      students.forEach((student) => formData.append("student_ids", student.student_id));
 
-        setTemplateMessage(`Generating certificates ${Math.min(index + batch.length, studentIds.length)} of ${studentIds.length}...`);
+      const startResponse = await api.post("/certificates/generation-jobs/", formData);
+      const jobId = startResponse.data.job_id;
+      setActiveJobId(jobId);
 
-        const response = await api.post("/certificates/generate-from-template/", formData);
-        aggregated.created.push(...(response.data.created || []));
-        aggregated.skipped.push(...(response.data.skipped || []));
-        aggregated.created_count += response.data.created_count || 0;
-        aggregated.skipped_count += response.data.skipped_count || 0;
+      while (true) {
+        const pollResponse = await api.get(`/certificates/generation-jobs/${jobId}/`);
+        const job = pollResponse.data;
+
+        aggregated.created.push(...(job.recent_created || []));
+        aggregated.skipped.push(...(job.recent_skipped || []));
+        aggregated.created_count = job.created_count;
+        aggregated.skipped_count = job.skipped_count;
+        setTemplateProgress(job.progress_percent || 0);
+        setTemplateMessage(
+          `Generating certificates ${job.processed_count} of ${job.total_count} (${job.progress_percent}%)...`
+        );
+
+        if (job.status === "completed") {
+          aggregated.skipped = job.skipped?.length ? job.skipped : aggregated.skipped;
+          break;
+        }
+
+        if (job.status === "failed") {
+          throw new Error(job.error_message || "Certificate generation failed");
+        }
+
+        if (job.status === "cancelled") {
+          throw new Error("Certificate generation was cancelled");
+        }
+
+        await sleep(400);
       }
 
       setTemplateResult(aggregated);
@@ -149,6 +190,8 @@ if (fileInput) {
       }
     } finally {
       setTemplateLoading(false);
+      setActiveJobId(null);
+      setTemplateProgress(0);
     }
   };
 
@@ -295,8 +338,8 @@ if (fileInput) {
             </div>
 
             <div className="mb-4 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-900">
-              Upload one blank JPG/PNG certificate template. The system will write each student's name,
-              ID, course, issue date, and QR code onto a separate certificate.
+              Upload one blank JPG/PNG certificate template. Large batches (500+) run as a background
+              job with live progress, so the browser will not time out.
             </div>
 
             <label className="mb-4 block">
@@ -322,13 +365,40 @@ if (fileInput) {
               />
             </label>
 
-            <button
-              disabled={templateLoading || !templateFile}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
-            >
-              <BadgeCheck size={18} />
-              {templateLoading ? "Generating certificates..." : "Generate for All Students"}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                disabled={templateLoading || !templateFile}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+              >
+                <BadgeCheck size={18} />
+                {templateLoading ? "Generating certificates..." : "Generate for All Students"}
+              </button>
+
+              {templateLoading && activeJobId && (
+                <button
+                  type="button"
+                  onClick={handleCancelGeneration}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 px-5 py-3 font-semibold text-red-700 hover:bg-red-50 sm:w-auto"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {templateLoading && (
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
+                  <span>Progress</span>
+                  <span>{templateProgress}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+                    style={{ width: `${templateProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             {templateMessage && (
               <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{templateMessage}</p>
