@@ -231,9 +231,10 @@ def _generated_certificate_file(student, template_file, issue_date):
         min_size=max(12, int(width * 0.012)),
     )
 
+    course_name = student.course.course_name if student.course else "Internship Training"
     _draw_box_centered(
         draw,
-        student.course.course_name.upper(),
+        course_name.upper(),
         (
             int(width * 0.295),
             int(height * 0.778),
@@ -471,11 +472,24 @@ def create_generation_job(request):
     if not student_ids:
         return Response({"error": "No students found to generate certificates for"}, status=status.HTTP_400_BAD_REQUEST)
 
-    job = CertificateGenerationJob.objects.create(
-        template_file=template_file,
-        issue_date=issue_date,
-        student_ids=student_ids,
-    )
+    try:
+        job = CertificateGenerationJob.objects.create(
+            template_file=template_file,
+            issue_date=issue_date,
+            student_ids=student_ids,
+        )
+    except Exception as exc:
+        return Response(
+            {
+                "error": (
+                    "Failed to start certificate generation job. "
+                    "Redeploy the Render backend so database migrations can run."
+                ),
+                "detail": str(exc),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
     return Response(
         serialize_generation_job(job, request),
         status=status.HTTP_201_CREATED,
@@ -494,11 +508,23 @@ def poll_generation_job(request, job_id):
 
     recent_created = []
     recent_skipped = []
-    if job.status in {
-        CertificateGenerationJob.STATUS_PENDING,
-        CertificateGenerationJob.STATUS_PROCESSING,
-    }:
-        recent_created, recent_skipped = process_generation_job_batch(job, request)
+    try:
+        if job.status in {
+            CertificateGenerationJob.STATUS_PENDING,
+            CertificateGenerationJob.STATUS_PROCESSING,
+        }:
+            recent_created, recent_skipped = process_generation_job_batch(job, request)
+        job.refresh_from_db()
+    except Exception as exc:
+        return Response(
+            {
+                "error": "Certificate generation failed while processing a batch.",
+                "detail": str(exc),
+                "job_id": str(job.id),
+                "status": CertificateGenerationJob.STATUS_FAILED,
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response(serialize_generation_job(job, request, recent_created, recent_skipped))
 

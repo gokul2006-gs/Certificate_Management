@@ -35,6 +35,9 @@ export function formatApiError(error, fallback = "Request failed") {
   if (typeof data.detail === "string") {
     return data.detail;
   }
+  if (data.error && data.detail) {
+    return `${data.error} ${data.detail}`;
+  }
   if (error?.code === "ECONNABORTED") {
     return "Request timed out. Try again with fewer students or a smaller template image.";
   }

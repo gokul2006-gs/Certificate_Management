@@ -94,7 +94,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts',
     'courses',
-    'certificates',
+    'certificates.apps.CertificatesConfig',
 ]
 
 MIDDLEWARE = [
