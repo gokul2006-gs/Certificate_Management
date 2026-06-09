@@ -52,18 +52,25 @@ def _detect_lan_ip():
 
 
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://127.0.0.1:5173").rstrip("/")
+EXTRA_FRONTEND_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("FRONTEND_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 _LAN_IP = _detect_lan_ip()
 _LAN_FRONTEND_ORIGINS = [f"http://{_LAN_IP}:5173"] if _LAN_IP else []
 
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://*.vercel.app",
     FRONTEND_BASE_URL,
+    *EXTRA_FRONTEND_ORIGINS,
     *_LAN_FRONTEND_ORIGINS,
 ]))
 
-CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
+SESSION_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = False
@@ -105,11 +112,25 @@ FRONTEND_ALLOWED_ORIGINS = list(dict.fromkeys([
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     FRONTEND_BASE_URL,
+    *EXTRA_FRONTEND_ORIGINS,
     *_LAN_FRONTEND_ORIGINS,
 ]))
 
 CORS_ALLOWED_ORIGINS = FRONTEND_ALLOWED_ORIGINS
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
