@@ -2,7 +2,7 @@ import axios from "axios";
 
 function resolveApiBaseUrl() {
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+    return import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
   }
 
   const apiPort = import.meta.env.VITE_API_PORT || "8000";
@@ -29,14 +29,14 @@ export function formatApiError(error, fallback = "Request failed") {
   if (!data) {
     return error?.message || fallback;
   }
+  if (data.error && data.detail) {
+    return `${data.error} ${data.detail}`;
+  }
   if (typeof data.error === "string") {
     return data.error;
   }
   if (typeof data.detail === "string") {
     return data.detail;
-  }
-  if (data.error && data.detail) {
-    return `${data.error} ${data.detail}`;
   }
   if (error?.code === "ECONNABORTED") {
     return "Request timed out. Try again with fewer students or a smaller template image.";

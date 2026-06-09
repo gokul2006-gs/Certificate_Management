@@ -51,7 +51,10 @@ def _detect_lan_ip():
         return None
 
 
-FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://127.0.0.1:5173").rstrip("/")
+FRONTEND_BASE_URL = os.environ.get(
+    "FRONTEND_BASE_URL",
+    "https://smart-certificate-management-and.onrender.com",
+).rstrip("/")
 EXTRA_FRONTEND_ORIGINS = [
     origin.strip().rstrip("/")
     for origin in os.environ.get("FRONTEND_ALLOWED_ORIGINS", "").split(",")
@@ -63,6 +66,7 @@ _LAN_FRONTEND_ORIGINS = [f"http://{_LAN_IP}:5173"] if _LAN_IP else []
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://smart-certificate-management-and.onrender.com",
     "https://*.vercel.app",
     FRONTEND_BASE_URL,
     *EXTRA_FRONTEND_ORIGINS,
@@ -222,6 +226,9 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

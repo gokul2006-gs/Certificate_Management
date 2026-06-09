@@ -5,7 +5,7 @@ services:
     runtime: python
     rootDir: backend
     buildCommand: ./build.sh
-    startCommand: gunicorn config.wsgi
+    startCommand: sh -c "python manage.py migrate && gunicorn config.wsgi"
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"

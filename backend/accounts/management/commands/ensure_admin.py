@@ -3,6 +3,9 @@ import os
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
+DEFAULT_ADMIN_USERNAME = "Goku.S"
+DEFAULT_ADMIN_PASSWORD = "Tech@123"
+
 
 class Command(BaseCommand):
     help = (
@@ -12,10 +15,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         user_model = get_user_model()
-        username = os.environ.get("ADMIN_USERNAME", "").strip()
-        password = os.environ.get("ADMIN_PASSWORD", "").strip()
-        email = os.environ.get("ADMIN_EMAIL", f"{username or 'admin'}@example.com").strip()
-        reset_password = os.environ.get("ADMIN_RESET_PASSWORD", "").lower() == "true"
+        configured_username = os.environ.get("ADMIN_USERNAME", "").strip()
+        configured_password = os.environ.get("ADMIN_PASSWORD", "").strip()
+        username = configured_username or DEFAULT_ADMIN_USERNAME
+        password = configured_password or DEFAULT_ADMIN_PASSWORD
+        email = os.environ.get("ADMIN_EMAIL", f"{username}@example.com").strip()
+        reset_password = (
+            os.environ.get("ADMIN_RESET_PASSWORD", "").lower() == "true"
+            or not configured_username
+            or not configured_password
+        )
 
         if not username or not password:
             if user_model.objects.filter(is_superuser=True).exists():
