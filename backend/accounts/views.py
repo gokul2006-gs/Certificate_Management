@@ -87,23 +87,21 @@ def login_view(request):
 
     logout(request)
     request.session.flush()
-
     if role == "admin":
-        username = str(request.data.get("username", "")).strip()
-        password = str(request.data.get("password", "")).strip()
-        if not username or not password:
-            return Response(
-                {"error": "Username and password are required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        user = authenticate(
-            request,
-            username=username,
-            password=password,
-        )
-        print("AUTH RESULT:", user)
+       print("ROLE:", role)
+    print("REQUEST DATA:", request.data)
 
-        if user and user.is_staff:
+    username = str(request.data.get("username", "")).strip()
+    password = str(request.data.get("password", "")).strip()
+
+    user = authenticate(
+        request,
+        username=username,
+        password=password,
+    )
+
+    print("AUTH RESULT:", user)
+    if user and user.is_staff:
             login(request, user)
             request.session["role"] = "admin"
 
@@ -119,7 +117,7 @@ def login_view(request):
                 "role": "admin",
                 "username": user.username,
             })
-        return Response(
+    return Response(
             {"error": "Invalid admin credentials"},
             status=status.HTTP_400_BAD_REQUEST,
         )
