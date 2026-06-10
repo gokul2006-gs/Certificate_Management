@@ -518,3 +518,14 @@ def admin_login_logs(request):
         for log in logs
     ]
     return Response(data)
+from django.conf import settings
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(["GET"])
+def test_env(request):
+    return Response({
+        "MONGODB_URI_EXISTS": bool(settings.MONGODB_URI),
+        "MONGODB_NAME": settings.MONGODB_NAME,
+        "DATABASES": settings.DATABASES,
+    })
