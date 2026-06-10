@@ -44,6 +44,11 @@ class CorsExceptionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        origin = request.headers.get("Origin")
+        if request.method == "OPTIONS" and origin and self._origin_allowed(origin):
+            response = HttpResponse(status=200)
+            return self._apply_cors(request, response)
+
         try:
             response = self.get_response(request)
         except Exception:

@@ -48,29 +48,39 @@ def _detect_lan_ip():
         return None
 
 
+DEFAULT_FRONTEND_ORIGINS = [
+    "https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app",
+    "https://smart-certificate-management-and-ve.vercel.app",
+    "https://smart-certificate-management-and.onrender.com",
+]
+
 FRONTEND_BASE_URL = os.environ.get(
     "FRONTEND_BASE_URL",
-    "https://smart-certificate-management-and.onrender.com",
+    DEFAULT_FRONTEND_ORIGINS[0],
 ).rstrip("/")
-VERCEL_FRONTEND_ORIGIN = "https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app"
+
+def _normalize_origin(origin):
+    return origin.strip().rstrip("/")
+
+
 EXTRA_FRONTEND_ORIGINS = [
-    origin.strip().rstrip("/")
+    _normalize_origin(origin)
     for origin in os.environ.get("FRONTEND_ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
 _LAN_IP = _detect_lan_ip()
 _LAN_FRONTEND_ORIGINS = [f"http://{_LAN_IP}:5173"] if _LAN_IP else []
 
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
+FRONTEND_ALLOWED_ORIGINS = list(dict.fromkeys([
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://smart-certificate-management-and.onrender.com",
-    VERCEL_FRONTEND_ORIGIN,
-    "https://*.vercel.app",
     FRONTEND_BASE_URL,
+    *DEFAULT_FRONTEND_ORIGINS,
     *EXTRA_FRONTEND_ORIGINS,
     *_LAN_FRONTEND_ORIGINS,
 ]))
+
+CSRF_TRUSTED_ORIGINS = FRONTEND_ALLOWED_ORIGINS
 
 CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
 SESSION_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
@@ -121,18 +131,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-FRONTEND_ALLOWED_ORIGINS = list(dict.fromkeys([
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    VERCEL_FRONTEND_ORIGIN,
-    FRONTEND_BASE_URL,
-    *EXTRA_FRONTEND_ORIGINS,
-    *_LAN_FRONTEND_ORIGINS,
-]))
-
 CORS_ALLOWED_ORIGINS = FRONTEND_ALLOWED_ORIGINS
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
+    r"^https://[\w-]+\.vercel\.app$",
+    r"^https://[\w-]+-[\w-]+-[\w-]+\.vercel\.app$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
