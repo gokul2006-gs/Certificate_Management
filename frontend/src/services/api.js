@@ -11,12 +11,41 @@ function resolveApiBaseUrl() {
 }
 
 export const UPLOAD_TIMEOUT_MS = 120000;
+const WAKEUP_TIMEOUT_MS = 90000;
+const WAKEUP_RETRY_DELAY_MS = 5000;
+const WAKEUP_MAX_ATTEMPTS = 4;
 
 const api = axios.create({
   baseURL: resolveApiBaseUrl(),
   withCredentials: true,
   timeout: UPLOAD_TIMEOUT_MS,
 });
+
+function isRetryableNetworkError(error) {
+  return !error?.response;
+}
+
+async function requestWithRetry(requestFn, {
+  attempts = WAKEUP_MAX_ATTEMPTS,
+  delayMs = WAKEUP_RETRY_DELAY_MS,
+  timeoutMs = WAKEUP_TIMEOUT_MS,
+} = {}) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await requestFn(timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableNetworkError(error) || attempt === attempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError;
+}
 
 
 api.interceptors.response.use(
@@ -42,7 +71,7 @@ export function formatApiError(error, fallback = "Request failed") {
     return "Request timed out. Try again with fewer students or a smaller template image.";
   }
   if (!error?.response) {
-    return "Network error. The server may have timed out while generating certificates.";
+    return "Cannot reach the API. On Render free tier the server may be waking up — wait 30 seconds and try again.";
   }
   return fallback;
 }
@@ -53,7 +82,9 @@ export const checkSession = async () => {
 };
 
 export const getCsrfToken = async () => {
-  const response = await api.get("/accounts/csrf/");
+  const response = await requestWithRetry((timeoutMs) =>
+    api.get("/accounts/csrf/", { timeout: timeoutMs })
+  );
   api.defaults.headers.common["X-CSRFToken"] = response.data.csrfToken;
   return response.data.csrfToken;
 };

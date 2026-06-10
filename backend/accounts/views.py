@@ -1,3 +1,5 @@
+from bson import ObjectId
+from bson.errors import InvalidId
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.conf import settings
@@ -25,6 +27,23 @@ def _get_client_ip(request):
 
 
 DEFAULT_PASSWORD = "Tech@123"
+
+
+def _to_session_value(value):
+    if isinstance(value, ObjectId):
+        return str(value)
+    return value
+
+
+def _parse_session_object_id(value):
+    if isinstance(value, ObjectId):
+        return value
+    if isinstance(value, str):
+        try:
+            return ObjectId(value)
+        except (InvalidId, TypeError, ValueError):
+            return None
+    return None
 
 
 def _next_student_id():
@@ -91,7 +110,7 @@ def login_view(request):
                 username=user.username,
                 ip_address=_get_client_ip(request),
             )
-            request.session["admin_log_id"] = log.id
+            request.session["admin_log_id"] = _to_session_value(log.id)
             request.session.save()
 
             return Response({
@@ -146,9 +165,11 @@ def login_view(request):
 def logout_view(request):
     log_id = request.session.get("admin_log_id")
     if log_id:
-        AdminLoginLog.objects.filter(id=log_id, logout_at__isnull=True).update(
-            logout_at=timezone.now()
-        )
+        object_id = _parse_session_object_id(log_id)
+        if object_id is not None:
+            AdminLoginLog.objects.filter(id=object_id, logout_at__isnull=True).update(
+                logout_at=timezone.now()
+            )
     logout(request)
     request.session.flush()
     return Response({"message": "Logged out"})
@@ -489,7 +510,7 @@ def admin_login_logs(request):
     logs = AdminLoginLog.objects.all()[:100]
     data = [
         {
-            "id": log.id,
+            "id": str(log.id),
             "username": log.username,
             "login_at": log.login_at,
             "logout_at": log.logout_at,

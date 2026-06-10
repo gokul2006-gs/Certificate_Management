@@ -22,7 +22,7 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_NAME
-        value: "smart_certificate_db"
+        value: "TS3"
       - key: ADMIN_USERNAME
         sync: false
       - key: ADMIN_PASSWORD

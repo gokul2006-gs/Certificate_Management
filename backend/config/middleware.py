@@ -67,6 +67,10 @@ class CorsExceptionMiddleware:
         for pattern in getattr(settings, "CORS_ALLOWED_ORIGIN_REGEXES", []):
             if re.match(pattern, origin):
                 return True
+        if origin.startswith("https://") and origin.endswith(".vercel.app"):
+            return True
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            return True
         return False
 
     def _apply_cors(self, request, response):
