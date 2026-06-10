@@ -101,10 +101,8 @@ def login_view(request):
             username=username,
             password=password,
         )
-        print(
-    "USERS IN RENDER:",
-    list(User.objects.values("username"))
-)
+        print("AUTH RESULT:", user)
+
         if user and user.is_staff:
             login(request, user)
             request.session["role"] = "admin"
