@@ -525,3 +525,18 @@ from rest_framework.response import Response
 @api_view(["GET"])
 def test_env(request):
     return Response({"test": "working"})
+from django.contrib.auth.models import User
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+
+@api_view(["GET"])
+def admin_check(request):
+    return Response(
+        list(
+            User.objects.values(
+                "username",
+                "is_staff",
+                "is_superuser"
+            )
+        )
+    )

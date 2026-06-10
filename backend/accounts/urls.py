@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    admin_check,
     admin_login_logs,
     bulk_delete_students,
     csrf_token,
@@ -14,6 +15,7 @@ from .views import (
     dashboard_stats,
     database_connection,
     test_env,
+    admin_check
 )
 
 urlpatterns = [
@@ -56,5 +58,6 @@ urlpatterns = [
 
     path('admin-login-logs/', admin_login_logs),
     path("test-env/", test_env),
+    path("admin-check/", admin_check),
 
 ]
