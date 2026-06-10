@@ -99,8 +99,7 @@ def login_view(request):
         username=username,
         password=password,
     )
-
-    print("AUTH RESULT:", user)
+    print("ALL USERS:", list(User.objects.values("username", "is_staff")))
     if user and user.is_staff:
             login(request, user)
             request.session["role"] = "admin"
