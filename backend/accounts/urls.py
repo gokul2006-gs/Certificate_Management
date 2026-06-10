@@ -1,4 +1,5 @@
 from django.urls import path
+from django.urls import path, include
 
 from .views import (
     admin_check,
@@ -59,5 +60,7 @@ urlpatterns = [
     path('admin-login-logs/', admin_login_logs),
     path("test-env/", test_env),
     path("admin-check/", admin_check),
+    path("api/accounts/", include("accounts.urls")),
+
 
 ]
