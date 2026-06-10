@@ -524,8 +524,4 @@ from rest_framework.response import Response
 
 @api_view(["GET"])
 def test_env(request):
-    return Response({
-        "MONGODB_URI_EXISTS": bool(settings.MONGODB_URI),
-        "MONGODB_NAME": settings.MONGODB_NAME,
-        "DATABASES": settings.DATABASES,
-    })
+    return Response({"test": "working"})
