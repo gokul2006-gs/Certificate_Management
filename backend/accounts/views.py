@@ -79,8 +79,7 @@ def _admin_required(request):
 @ensure_csrf_cookie
 @api_view(["GET"])
 def csrf_token(request):
-    return Response({"csrfToken": get_token(request)})
-
+    return Response({"test": "working"})
 
 @api_view(["POST"])
 def login_view(request):
@@ -110,7 +109,7 @@ def login_view(request):
                 username=user.username,
                 ip_address=_get_client_ip(request),
             )
-            request.session["admin_log_id"] = _to_session_value(log.id)
+            request.session["admin_log_id"] = str(log.id)
             request.session.save()
 
             return Response({

@@ -47,8 +47,8 @@ def _detect_lan_ip():
     except OSError:
         return None
 
-
 DEFAULT_FRONTEND_ORIGINS = [
+    "https://certificate-management-phi.vercel.app",
     "https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app",
     "https://smart-certificate-management-and-ve.vercel.app",
     "https://smart-certificate-management-and.onrender.com",
@@ -120,10 +120,10 @@ MIGRATION_MODULES = {
 DATABASE_ROUTERS = ["django_mongodb_backend.routers.MongoRouter"]
 
 MIDDLEWARE = [
-    'config.middleware.CorsExceptionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'config.middleware.CorsExceptionMiddleware',
     'config.session_middleware.CleanStaleSessionCookieMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

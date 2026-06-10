@@ -1,0 +1,10 @@
+{
+  "experimentalServices": {
+    "smart-certificate-api": {
+      "type": "web",
+      "root": "backend",
+      "routePrefix": "/",
+      "buildCommand": "./build.sh"
+    }
+  }
+}
