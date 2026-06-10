@@ -93,13 +93,13 @@ def login_view(request):
 
     username = str(request.data.get("username", "")).strip()
     password = str(request.data.get("password", "")).strip()
-
-    user = authenticate(
-        request,
-        username=username,
-        password=password,
-    )
     print("ALL USERS:", list(User.objects.values("username", "is_staff")))
+    user = authenticate(
+    request,
+    username=username,
+    password=password,
+)
+    print("AUTH RESULT:", user)
     if user and user.is_staff:
             login(request, user)
             request.session["role"] = "admin"
@@ -110,7 +110,6 @@ def login_view(request):
             )
             request.session["admin_log_id"] = str(log.id)
             request.session.save()
-
             return Response({
                 "message": "Admin login success",
                 "role": "admin",
