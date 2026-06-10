@@ -88,5 +88,5 @@ export const getCsrfToken = async () => {
   api.defaults.headers.common["X-CSRFToken"] = response.data.csrfToken;
   return response.data.csrfToken;
 };
-
+console.log("API BASE URL:", resolveApiBaseUrl());
 export default api;
