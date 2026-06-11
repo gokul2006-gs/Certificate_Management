@@ -51,7 +51,8 @@ urlpatterns = [
 
     path(
         'download/<str:student_id>/',
-        download_certificate
+        download_certificate,
+        name="certificate-download",
     ),
     path(
     'view/<str:student_id>/',

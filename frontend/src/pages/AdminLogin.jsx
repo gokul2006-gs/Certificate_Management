@@ -85,7 +85,7 @@ function AdminLogin() {
 
           <button
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary-650 px-4 py-3.5 text-sm font-bold text-white hover:bg-primary-700 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:opacity-60 transition duration-300 shadow-md shadow-primary-600/20"
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 px-4 py-3.5 text-sm font-bold text-white hover:from-slate-950 hover:to-slate-800 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:opacity-60 transition duration-300 shadow-md shadow-slate-900/20"
           >
             <LockKeyhole size={16} className={loading ? "animate-pulse" : ""} />
             {loading ? "Verifying..." : "Open Control Panel"}

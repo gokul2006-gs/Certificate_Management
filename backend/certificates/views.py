@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.http import FileResponse
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -40,6 +41,10 @@ def _absolute_media_url(request, file_field):
     return request.build_absolute_uri(file_field.url)
 
 
+def _verification_url(student_id):
+    return f"{settings.FRONTEND_BASE_URL}/verify/{student_id}"
+
+
 def _latest_certificate(student_id):
     certificate = (
         Certificate.objects.select_related("student", "student__course")
@@ -66,7 +71,7 @@ def _student_id_from_filename(file_name):
 
 
 def _generate_qr(certificate):
-    verification_url = f"{settings.FRONTEND_BASE_URL}/verify/{certificate.student.student_id}"
+    verification_url = _verification_url(certificate.student.student_id)
     qr = qrcode.make(verification_url)
     buffer = BytesIO()
     qr.save(buffer, format="PNG")
@@ -202,7 +207,7 @@ def _generated_certificate_file(student, template_file, issue_date):
     template = Image.open(template_file).convert("RGB")
     width, height = template.size
     draw = ImageDraw.Draw(template)
-    verification_url = f"{settings.FRONTEND_BASE_URL}/verify/{student.student_id}"
+    verification_url = _verification_url(student.student_id)
 
     text_color = (21, 32, 54)
     muted_color = (61, 75, 99)
@@ -214,9 +219,9 @@ def _generated_certificate_file(student, template_file, issue_date):
         student.name.upper(),
         (
             int(width * 0.285),
-            int(height * 0.448),
+            int(height * 0.415),
             int(width * 0.845),
-            int(height * 0.508),
+            int(height * 0.475),
         ),
         max(34, int(width * 0.038)),
         text_color,
@@ -229,9 +234,9 @@ def _generated_certificate_file(student, template_file, issue_date):
         f"ID: {student.student_id}",
         (
             int(width * 0.405),
-            int(height * 0.512),
+            int(height * 0.485),
             int(width * 0.735),
-            int(height * 0.542),
+            int(height * 0.515),
         ),
         max(18, int(width * 0.018)),
         muted_color,
@@ -302,7 +307,26 @@ def _generated_certificate_file(student, template_file, issue_date):
 
 
 def _download_url(request, student_id):
-    return request.build_absolute_uri(f"/api/certificates/download/{student_id}/")
+    return request.build_absolute_uri(
+        reverse("certificate-download", kwargs={"student_id": student_id})
+    )
+
+
+def _certificate_response(request, certificate):
+    course = certificate.student.course
+    return {
+        "valid": True,
+        "status": "VALID",
+        "student_id": certificate.student.student_id,
+        "student_name": certificate.student.name,
+        "course_name": course.course_name if course else "",
+        "certificate_status": "VALID",
+        "issue_date": certificate.created_at.date(),
+        "certificate": _absolute_media_url(request, certificate.certificate_file),
+        "download_url": _download_url(request, certificate.student.student_id),
+        "qr": _absolute_media_url(request, certificate.qr_code),
+        "verification_url": _verification_url(certificate.student.student_id),
+    }
 
 
 @api_view(["POST"])
@@ -386,7 +410,7 @@ def bulk_upload_certificates(request):
             "certificate": _absolute_media_url(request, certificate.certificate_file),
             "download_url": _download_url(request, certificate.student.student_id),
             "qr": _absolute_media_url(request, certificate.qr_code),
-            "verification_url": f"{settings.FRONTEND_BASE_URL}/verify/{certificate.student.student_id}",
+            "verification_url": _verification_url(certificate.student.student_id),
         })
 
     for uploaded_file in uploaded_files:
@@ -575,13 +599,7 @@ def view_certificate(request, student_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
     return Response({
-        "status": "VALID",
-        "student_id": certificate.student.student_id,
-        "student_name": certificate.student.name,
-        "course_name": certificate.student.course.course_name,
-        "certificate": _absolute_media_url(request, certificate.certificate_file),
-        "download_url": _download_url(request, certificate.student.student_id),
-        "qr": _absolute_media_url(request, certificate.qr_code),
+        **_certificate_response(request, certificate),
         "created_at": certificate.created_at,
         "history": CertificateSerializer(
             Certificate.objects.filter(student=certificate.student).order_by("-created_at"),
@@ -603,16 +621,7 @@ def verify_certificate(request, student_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
     return Response({
-        "valid": True,
-        "status": "VALID",
-        "student_name": certificate.student.name,
-        "student_id": certificate.student.student_id,
-        "course_name": certificate.student.course.course_name,
-        "certificate_status": "VALID",
-        "issue_date": certificate.created_at.date(),
-        "certificate": _absolute_media_url(request, certificate.certificate_file),
-        "qr": _absolute_media_url(request, certificate.qr_code),
-        "download_url": _download_url(request, certificate.student.student_id),
+        **_certificate_response(request, certificate),
     })
 
 
@@ -622,6 +631,21 @@ def download_certificate(request, student_id):
     if not certificate:
         return Response({"error": "Certificate not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    file_handle = certificate.certificate_file.open("rb")
+    if not certificate.certificate_file:
+        return Response({"error": "Certificate file is missing"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        if not certificate.certificate_file.storage.exists(certificate.certificate_file.name):
+            return Response(
+                {"error": "Certificate file is no longer available. Please regenerate or upload it again."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        file_handle = certificate.certificate_file.open("rb")
+    except (FileNotFoundError, OSError, ValueError):
+        return Response(
+            {"error": "Certificate file is no longer available. Please regenerate or upload it again."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     file_name = os.path.basename(certificate.certificate_file.name)
     return FileResponse(file_handle, as_attachment=True, filename=file_name)

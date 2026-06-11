@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Calendar, Download, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
+import { Award, Calendar, Download, ExternalLink, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
 
@@ -66,7 +66,7 @@ function StudentDashboard() {
     <Layout role="student">
       <PageHeader title={`Welcome, ${student.name}`} eyebrow="Student Dashboard" />
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start animate-fade-in-up">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] items-start animate-fade-in-up">
         <div className="space-y-6">
           {/* Profile Card */}
           <div className="glass-panel rounded-2xl p-6 shadow-sm">
@@ -102,7 +102,7 @@ function StudentDashboard() {
         </div>
 
         {/* QR Code / Certificate widget */}
-        <aside className="glass-panel rounded-2xl p-6 shadow-sm">
+        <aside className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3.5">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600">
               <QrCode size={20} />
@@ -120,15 +120,31 @@ function StudentDashboard() {
                   ACTIVE & VALID
                 </span>
               </div>
-              <div className="mx-auto w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition hover:scale-[1.05] hover:shadow-lg duration-300 cursor-pointer">
-                <img
-                  src={certificate.qr}
-                  alt="Certificate QR code"
-                  className="aspect-square w-full object-contain"
-                />
-              </div>
+              {certificate.qr && (
+                <a
+                  href={certificate.verification_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mx-auto block w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition duration-300 hover:scale-[1.05] hover:shadow-lg"
+                >
+                  <img
+                    src={certificate.qr}
+                    alt="Certificate QR code"
+                    className="aspect-square w-full object-contain"
+                  />
+                </a>
+              )}
               
               <div className="mt-6 space-y-3">
+                <a
+                  href={certificate.verification_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-xs font-bold text-slate-700 transition duration-200 hover:bg-slate-50"
+                >
+                  <ExternalLink size={14} />
+                  Open Certificate
+                </a>
                 <a
                   href={certificate.download_url}
                   download
