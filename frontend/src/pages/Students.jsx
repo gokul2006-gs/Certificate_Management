@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
-import api from "../services/api";
+import api, { formatApiError } from "../services/api";
 
 const emptyForm = { name: "", email: "" };
 
@@ -48,10 +48,18 @@ function Students() {
 
   const handleCreate = async (event) => {
     event.preventDefault();
-    await api.post("/accounts/students/", form);
-    setForm(emptyForm);
-    setMessage("Student created successfully (default password: Tech@123)");
-    loadStudents();
+    setMessage("");
+    try {
+      await api.post("/accounts/students/", {
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+      });
+      setForm(emptyForm);
+      setMessage("Student created successfully (default password: Tech@123)");
+      loadStudents();
+    } catch (error) {
+      setMessage(formatApiError(error, "Could not create student"));
+    }
   };
 
   const startEdit = (student) => {
@@ -60,10 +68,18 @@ function Students() {
   };
 
   const saveEdit = async (studentId) => {
-    await api.put(`/accounts/students/${studentId}/`, editForm);
-    setEditingId("");
-    setMessage("Student registration updated");
-    loadStudents();
+    setMessage("");
+    try {
+      await api.put(`/accounts/students/${studentId}/`, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim().toLowerCase(),
+      });
+      setEditingId("");
+      setMessage("Student registration updated");
+      loadStudents();
+    } catch (error) {
+      setMessage(formatApiError(error, "Could not update student"));
+    }
   };
 
   const deleteStudent = async (studentId) => {
@@ -137,7 +153,16 @@ function Students() {
           </button>
         </form>
         {message && (
-          <div className="mt-4 rounded-xl bg-primary-50 border border-primary-100 p-4 text-xs font-semibold text-primary-700">
+          <div
+            className={`mt-4 rounded-xl border p-4 text-xs font-semibold ${
+              message.toLowerCase().includes("could not") ||
+              message.toLowerCase().includes("failed") ||
+              message.toLowerCase().includes("invalid") ||
+              message.toLowerCase().includes("required")
+                ? "border-red-100 bg-red-50 text-red-700"
+                : "border-primary-100 bg-primary-50 text-primary-700"
+            }`}
+          >
             {message}
           </div>
         )}

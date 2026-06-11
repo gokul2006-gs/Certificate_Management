@@ -448,13 +448,18 @@ def students(request):
     data.setdefault("student_id", _next_student_id())
     data.setdefault("password", DEFAULT_PASSWORD)
     if not data.get("course"):
-        data["course"] = _ensure_course().id
+        data["course"] = str(_ensure_course().id)
+    else:
+        data["course"] = str(data["course"])
 
     serializer = StudentSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(
+        {"error": "Could not create student", "detail": serializer.errors},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 @api_view(["GET", "PUT", "DELETE"])

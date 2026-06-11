@@ -140,13 +140,34 @@ api.interceptors.response.use(
   }
 );
 
+function formatValidationDetail(detail) {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    return detail.join(", ");
+  }
+  if (detail && typeof detail === "object") {
+    return Object.entries(detail)
+      .map(([field, messages]) => {
+        const text = Array.isArray(messages) ? messages.join(", ") : String(messages);
+        return `${field}: ${text}`;
+      })
+      .join("; ");
+  }
+  return String(detail);
+}
+
 export function formatApiError(error, fallback = "Request failed") {
   const data = error?.response?.data;
   if (!data) {
     return error?.message || fallback;
   }
   if (data.error && data.detail) {
-    return `${data.error} ${data.detail}`;
+    return `${data.error}: ${formatValidationDetail(data.detail)}`;
+  }
+  if (data.detail) {
+    return formatValidationDetail(data.detail);
   }
   if (typeof data.error === "string") {
     return data.error;
