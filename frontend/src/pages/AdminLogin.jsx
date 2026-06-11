@@ -19,6 +19,7 @@ function AdminLogin() {
 
     try {
      const csrfToken = await getCsrfToken();
+     console.log("CSRF TOKEN USED:", csrfToken);
 
   const response = await api.post(
     "/accounts/login/",
