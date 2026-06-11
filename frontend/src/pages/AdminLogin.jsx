@@ -18,14 +18,21 @@ function AdminLogin() {
     setError("");
 
     try {
-      const response = await api.post(
-  "/accounts/login/",
-  {
-    username: form.username,
-    password: form.password,
-    role: "admin",
-  }
-);
+     const csrfToken = await getCsrfToken();
+
+  const response = await api.post(
+    "/accounts/login/",
+    {
+      username: form.username,
+      password: form.password,
+      role: "admin",
+    },
+    {
+      headers: {
+        "X-CSRFToken": csrfToken,
+      },
+    }
+  );
 
       const session = await checkSession();
       if (!session.authenticated || session.role !== "admin") {
