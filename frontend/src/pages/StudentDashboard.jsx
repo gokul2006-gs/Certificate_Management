@@ -145,14 +145,20 @@ function StudentDashboard() {
                   <ExternalLink size={14} />
                   Open Certificate
                 </a>
-                <a
-                  href={certificate.download_url}
-                  download
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3.5 text-xs font-bold text-white hover:bg-slate-850 transition duration-200 shadow-md shadow-slate-950/10"
-                >
-                  <Download size={14} />
-                  Download Credentials
-                </a>
+                {certificate.certificate_available ? (
+                  <a
+                    href={certificate.download_url}
+                    download
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3.5 text-xs font-bold text-white hover:bg-slate-850 transition duration-200 shadow-md shadow-slate-950/10"
+                  >
+                    <Download size={14} />
+                    Download Credentials
+                  </a>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
+                    Certificate file is missing. Ask the admin to upload or regenerate it.
+                  </div>
+                )}
                 
                 <div className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
                   <ScanLine size={14} />

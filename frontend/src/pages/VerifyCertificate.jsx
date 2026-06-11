@@ -44,6 +44,7 @@ function VerifyCertificate() {
   const valid = data?.valid;
   const certificateUrl = data?.certificate || "";
   const downloadUrl = data?.download_url || certificateUrl;
+  const certificateAvailable = Boolean(data?.certificate_available && certificateUrl);
 
   const handleDownload = async () => {
     if (!downloadUrl) return;
@@ -94,7 +95,19 @@ function VerifyCertificate() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Official Certificate</span>
                   </div>
                 </div>
-                {isImageCertificate(certificateUrl) ? (
+                {!certificateAvailable ? (
+                  <div className="grid min-h-[320px] place-items-center p-6 text-center sm:min-h-[420px]">
+                    <div className="max-w-md">
+                      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <h2 className="text-lg font-extrabold text-slate-900">Certificate file not available</h2>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        The student record is verified, but the uploaded certificate file is missing from the server. Please upload or regenerate this certificate from the admin panel.
+                      </p>
+                    </div>
+                  </div>
+                ) : isImageCertificate(certificateUrl) ? (
                   <img
                     src={certificateUrl}
                     alt="Verified certificate"
@@ -134,21 +147,23 @@ function VerifyCertificate() {
                 <button
                   type="button"
                   onClick={handleDownload}
-                  disabled={downloading || !downloadUrl}
+                  disabled={downloading || !downloadUrl || !certificateAvailable}
                   className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-slate-950/15 transition-all duration-300 hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Download className="shrink-0" size={16} />
                   <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
                 </button>
-                <a
-                  href={certificateUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <ExternalLink className="shrink-0" size={16} />
-                  <span>Open Original File</span>
-                </a>
+                {certificateAvailable && (
+                  <a
+                    href={certificateUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ExternalLink className="shrink-0" size={16} />
+                    <span>Open Original File</span>
+                  </a>
+                )}
                 {downloadError && (
                   <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
                     {downloadError}

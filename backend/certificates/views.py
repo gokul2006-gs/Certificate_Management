@@ -312,8 +312,18 @@ def _download_url(request, student_id):
     )
 
 
+def _file_available(file_field):
+    if not file_field:
+        return False
+    try:
+        return file_field.storage.exists(file_field.name)
+    except (OSError, ValueError):
+        return False
+
+
 def _certificate_response(request, certificate):
     course = certificate.student.course
+    certificate_available = _file_available(certificate.certificate_file)
     return {
         "valid": True,
         "status": "VALID",
@@ -322,8 +332,13 @@ def _certificate_response(request, certificate):
         "course_name": course.course_name if course else "",
         "certificate_status": "VALID",
         "issue_date": certificate.created_at.date(),
-        "certificate": _absolute_media_url(request, certificate.certificate_file),
-        "download_url": _download_url(request, certificate.student.student_id),
+        "certificate": _absolute_media_url(request, certificate.certificate_file)
+        if certificate_available
+        else None,
+        "certificate_available": certificate_available,
+        "download_url": _download_url(request, certificate.student.student_id)
+        if certificate_available
+        else None,
         "qr": _absolute_media_url(request, certificate.qr_code),
         "verification_url": _verification_url(certificate.student.student_id),
     }
@@ -635,7 +650,7 @@ def download_certificate(request, student_id):
         return Response({"error": "Certificate file is missing"}, status=status.HTTP_404_NOT_FOUND)
 
     try:
-        if not certificate.certificate_file.storage.exists(certificate.certificate_file.name):
+        if not _file_available(certificate.certificate_file):
             return Response(
                 {"error": "Certificate file is no longer available. Please regenerate or upload it again."},
                 status=status.HTTP_404_NOT_FOUND,
