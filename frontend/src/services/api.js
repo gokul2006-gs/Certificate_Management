@@ -2,9 +2,21 @@ import axios from "axios";
 import AuthService from "../navigation/AuthService";
 import { getLoginPath, isPublicPath } from "../navigation/authPaths";
 
+function normalizeApiBaseUrl(url) {
+  const trimmed = String(url || "").trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
 function resolveApiBaseUrl() {
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
+    const configured = import.meta.env.VITE_API_URL?.trim();
+    if (configured) {
+      return normalizeApiBaseUrl(configured);
+    }
+    return normalizeApiBaseUrl(window.location.origin);
   }
 
   const apiPort = import.meta.env.VITE_API_PORT || "8000";

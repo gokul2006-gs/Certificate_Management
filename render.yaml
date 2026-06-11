@@ -14,11 +14,11 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: ".onrender.com,smart-certificate-management-and.onrender.com"
+        value: ".onrender.com,certificate-management-ravg.onrender.com,smart-certificate-management-and.onrender.com"
       - key: FRONTEND_BASE_URL
-        value: "https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app"
+        value: "https://certificate-management-phi.vercel.app"
       - key: FRONTEND_ALLOWED_ORIGINS
-        value: "https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app,https://smart-certificate-management-and-ve.vercel.app"
+        value: "https://certificate-management-phi.vercel.app,https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app,https://smart-certificate-management-and-ve.vercel.app"
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_NAME
