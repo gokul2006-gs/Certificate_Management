@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./navigation/ProtectedRoute";
 import PublicRoute from "./navigation/PublicRoute";
@@ -37,6 +37,7 @@ function App() {
             element={wrapRoute(route)}
           />
         ))}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

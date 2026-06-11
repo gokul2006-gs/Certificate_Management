@@ -16,6 +16,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from accounts.models import Student
+from accounts.permissions import admin_required, is_admin, is_student
 from .models import Certificate, CertificateGenerationJob
 from .serializers import CertificateSerializer
 from .services import (
@@ -27,12 +28,6 @@ from .services import (
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 STUDENT_ID_PATTERN = re.compile(r"TSC\d+", re.IGNORECASE)
-
-
-def _admin_required(request):
-    return request.session.get("role") == "admin" or (
-        request.user.is_authenticated and request.user.is_staff
-    )
 
 
 def _absolute_media_url(request, file_field):
@@ -345,10 +340,8 @@ def _certificate_response(request, certificate):
 
 
 @api_view(["POST"])
+@admin_required
 def upload_certificate(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     student_id = request.data.get("student_id")
     certificate_file = request.FILES.get("certificate_file")
 
@@ -381,10 +374,8 @@ def upload_certificate(request):
 
 
 @api_view(["POST"])
+@admin_required
 def bulk_upload_certificates(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     uploaded_files = list(request.FILES.getlist("certificate_files"))
     zip_file = request.FILES.get("zip_file")
 
@@ -453,10 +444,8 @@ def bulk_upload_certificates(request):
 
 
 @api_view(["POST"])
+@admin_required
 def generate_certificates_from_template(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     template_file = request.FILES.get("template_file")
     if not template_file:
         return Response({"error": "Upload a blank certificate template"}, status=status.HTTP_400_BAD_REQUEST)
@@ -494,10 +483,8 @@ def generate_certificates_from_template(request):
 
 
 @api_view(["POST"])
+@admin_required
 def create_generation_job(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     template_file = request.FILES.get("template_file")
     if not template_file:
         return Response({"error": "Upload a blank certificate template"}, status=status.HTTP_400_BAD_REQUEST)
@@ -543,10 +530,8 @@ def create_generation_job(request):
 
 
 @api_view(["GET"])
+@admin_required
 def poll_generation_job(request, job_id):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     try:
         job = CertificateGenerationJob.objects.get(pk=job_id)
     except CertificateGenerationJob.DoesNotExist:
@@ -576,10 +561,8 @@ def poll_generation_job(request, job_id):
 
 
 @api_view(["POST"])
+@admin_required
 def cancel_generation_job(request, job_id):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     try:
         job = CertificateGenerationJob.objects.get(pk=job_id)
     except CertificateGenerationJob.DoesNotExist:
@@ -601,9 +584,9 @@ def cancel_generation_job(request, job_id):
 @api_view(["GET"])
 def view_certificate(request, student_id):
     # Check access control: admin can view any, students can only view their own
-    if not _admin_required(request):
+    if not is_admin(request):
         session_student_id = request.session.get("student_id")
-        if not session_student_id or session_student_id != student_id:
+        if not is_student(request) or session_student_id != student_id:
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
     certificate = _latest_certificate(student_id)

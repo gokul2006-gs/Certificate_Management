@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from accounts.models import Student
+from accounts.permissions import admin_required
 from courses.models import Course
 from .serializers import CourseSerializer
 
@@ -16,17 +17,9 @@ def _parse_object_id(val):
         return None
 
 
-def _admin_required(request):
-    return request.session.get("role") == "admin" or (
-        request.user.is_authenticated and request.user.is_staff
-    )
-
-
 @api_view(["GET", "POST"])
+@admin_required
 def courses_list(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     if request.method == "GET":
         courses = Course.objects.all().order_by("course_name")
         serializer = CourseSerializer(courses, many=True)
@@ -41,10 +34,8 @@ def courses_list(request):
 
 
 @api_view(["GET", "PUT", "DELETE"])
+@admin_required
 def course_detail(request, course_id):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     obj_id = _parse_object_id(course_id)
     if not obj_id:
         return Response({"error": "Invalid course ID format"}, status=status.HTTP_400_BAD_REQUEST)

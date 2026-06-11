@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GraduationCap, LogIn } from "lucide-react";
 import api, { formatApiError } from "../services/api";
-import AuthService from "../navigation/AuthService";
+import { useAuth } from "../navigation/AuthContext";
 
 function StudentLogin() {
   const navigate = useNavigate();
+  const { refreshSession } = useAuth();
   const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("Tech@123");
   const [error, setError] = useState("");
@@ -23,12 +24,8 @@ function StudentLogin() {
         password,
       });
 
-      AuthService.syncFromSession({
-        authenticated: true,
-        role: "student",
-        student_id: response.data.student_id,
-      });
-      navigate("/student-dashboard");
+      await refreshSession();
+      navigate("/student-dashboard", { replace: true });
     } catch (err) {
       setError(formatApiError(err, "Login failed"));
     } finally {

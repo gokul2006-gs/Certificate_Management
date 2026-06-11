@@ -17,6 +17,7 @@ from django.utils import timezone
 from certificates.models import Certificate
 from courses.models import Course
 from .models import AdminLoginLog, Student
+from .permissions import admin_required, is_admin, is_student
 from .serializers import StudentSerializer
 
 
@@ -69,12 +70,6 @@ def _ensure_course():
         defaults={"duration": "3 Months"},
     )
     return course
-
-
-def _admin_required(request):
-    return request.session.get("role") == "admin" or (
-        request.user.is_authenticated and request.user.is_staff
-    )
 
 
 @ensure_csrf_cookie
@@ -175,7 +170,7 @@ def logout_view(request):
 def session_view(request):
     role = request.session.get("role")
 
-    if role == "admin" and not _admin_required(request):
+    if role == "admin" and not is_admin(request):
         request.session.flush()
         return Response({
             "authenticated": False,
@@ -218,10 +213,8 @@ def session_view(request):
 
 
 @api_view(["GET"])
+@admin_required
 def dashboard_stats(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     return Response({
         "students": Student.objects.count(),
         "courses": Course.objects.count(),
@@ -230,6 +223,7 @@ def dashboard_stats(request):
 
 
 @api_view(["GET"])
+@admin_required
 def database_connection(request):
     try:
         db_settings = settings.DATABASES["default"]
@@ -257,10 +251,8 @@ def database_connection(request):
 
 
 @api_view(["POST"])
+@admin_required
 def upload_excel(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     excel_file = request.FILES.get("file")
     if not excel_file:
         return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
@@ -446,10 +438,8 @@ def upload_excel(request):
 
 
 @api_view(["GET", "POST"])
+@admin_required
 def students(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     if request.method == "GET":
         student_rows = Student.objects.select_related("course").order_by("student_id")
         return Response(StudentSerializer(student_rows, many=True).data)
@@ -476,11 +466,11 @@ def student_detail(request, student_id):
 
     if request.method == "GET":
         session_student_id = request.session.get("student_id")
-        if not _admin_required(request) and session_student_id != student_id:
+        if not is_admin(request) and session_student_id != student_id:
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
         return Response(StudentSerializer(student).data)
 
-    if not _admin_required(request):
+    if not is_admin(request):
         return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == "DELETE":
@@ -495,10 +485,8 @@ def student_detail(request, student_id):
 
 
 @api_view(["POST"])
+@admin_required
 def bulk_delete_students(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     student_ids = request.data.get("student_ids", [])
     if not isinstance(student_ids, list) or not student_ids:
         return Response(
@@ -524,20 +512,17 @@ def student_profile(request, student_id):
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check access control: admin can view any, students can only view their own
-    if not _admin_required(request):
+    if not is_admin(request):
         session_student_id = request.session.get("student_id")
-        if not session_student_id or session_student_id != student_id:
+        if not is_student(request) or session_student_id != student_id:
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
     return Response(StudentSerializer(student).data)
 
 
 @api_view(["GET"])
+@admin_required
 def admin_login_logs(request):
-    if not _admin_required(request):
-        return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
-
     logs = AdminLoginLog.objects.all()[:100]
     data = [
         {
@@ -551,10 +536,12 @@ def admin_login_logs(request):
     ]
     return Response(data)
 @api_view(["GET"])
+@admin_required
 def test_env(request):
     return Response({"test": "working"})
 
 @api_view(["GET"])
+@admin_required
 def admin_check(request):
     return Response(
         list(

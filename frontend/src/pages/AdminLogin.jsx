@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 import api, { formatApiError } from "../services/api";
-import AuthService from "../navigation/AuthService";
+import { useAuth } from "../navigation/AuthContext";
 
 function AdminLogin() {
   const navigate = useNavigate();
+  const { refreshSession } = useAuth();
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,11 +26,8 @@ function AdminLogin() {
         }
       );
 
-      AuthService.syncFromSession({
-        authenticated: true,
-        role: response.data.role,
-      });
-      navigate("/admin-dashboard");
+      await refreshSession();
+      navigate("/admin-dashboard", { replace: true });
     } catch (err) {
       setError(formatApiError(err, "Unable to sign in"));
     } finally {
