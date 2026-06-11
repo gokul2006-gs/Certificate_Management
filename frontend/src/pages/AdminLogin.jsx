@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
-import api, { checkSession, formatApiError, getCsrfToken } from "../services/api";
+import api, { formatApiError } from "../services/api";
+import AuthService from "../navigation/AuthService";
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -24,7 +25,10 @@ function AdminLogin() {
         }
       );
 
-      localStorage.setItem("role", response.data.role);
+      AuthService.syncFromSession({
+        authenticated: true,
+        role: response.data.role,
+      });
       navigate("/admin-dashboard");
     } catch (err) {
       setError(formatApiError(err, "Unable to sign in"));

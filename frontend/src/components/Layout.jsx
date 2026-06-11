@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import api, { getCsrfToken, clearCsrfCache } from "../services/api";
+import api, { clearCsrfCache } from "../services/api";
+import AuthService from "../navigation/AuthService";
 
 const adminLinks = [
   { to: "/admin-dashboard", label: "Dashboard", icon: BarChart3 },
@@ -40,7 +41,7 @@ function Layout({ children, role = "admin" }) {
       console.error("Logout request error:", err);
     } finally {
       clearCsrfCache();
-      localStorage.clear();
+      AuthService.clearAll();
       navigate(role === "admin" ? "/admin" : "/");
     }
   };

@@ -1,4 +1,6 @@
 import axios from "axios";
+import AuthService from "../navigation/AuthService";
+import { getLoginPath, isPublicPath } from "../navigation/authPaths";
 
 function resolveApiBaseUrl() {
   if (import.meta.env.PROD) {
@@ -94,22 +96,34 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // If we get a 403 Forbidden and haven't retried yet, try to fetch a new CSRF token and retry
+    const method = originalRequest.method?.toLowerCase();
+
     if (
       error.response?.status === 403 &&
       !originalRequest._retry &&
-      ["post", "put", "delete", "patch"].includes(originalRequest.method?.toLowerCase())
+      ["post", "put", "delete", "patch"].includes(method)
     ) {
       originalRequest._retry = true;
       try {
         console.log("CSRF expired or invalid. Retrying request with fresh CSRF token...");
-        const freshToken = await getCsrfToken(true); // Force fetch new token
+        const freshToken = await getCsrfToken(true);
         originalRequest.headers["X-CSRFToken"] = freshToken;
         return await api(originalRequest);
       } catch (retryError) {
         return Promise.reject(retryError);
       }
     }
+
+    if (
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      method === "get" &&
+      !originalRequest.skipAuthRedirect &&
+      !isPublicPath(window.location.pathname)
+    ) {
+      AuthService.clearAll();
+      window.location.replace(getLoginPath(AuthService.getRole()));
+    }
+
     return Promise.reject(error);
   }
 );
@@ -137,9 +151,6 @@ export function formatApiError(error, fallback = "Request failed") {
   return fallback;
 }
 
-export const checkSession = async () => {
-  const response = await api.get("/accounts/session/");
-  return response.data;
-};
+export const checkSession = () => AuthService.fetchSession();
 
 export default api;

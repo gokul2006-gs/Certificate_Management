@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Award, Calendar, ExternalLink, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
+import AuthService from "../navigation/AuthService";
 
 function StudentDashboard() {
   const [student, setStudent] = useState(null);
@@ -10,7 +11,11 @@ function StudentDashboard() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const studentId = localStorage.getItem("student_id");
+    const studentId = AuthService.getStudentId();
+    if (!studentId) {
+      setMessage("Please login again");
+      return;
+    }
 
     api
       .get(`/accounts/profile/${studentId}/`)

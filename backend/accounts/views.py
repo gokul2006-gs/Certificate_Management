@@ -174,11 +174,46 @@ def logout_view(request):
 @api_view(["GET"])
 def session_view(request):
     role = request.session.get("role")
+
+    if role == "admin" and not _admin_required(request):
+        request.session.flush()
+        return Response({
+            "authenticated": False,
+            "role": None,
+            "student_id": None,
+            "is_admin": False,
+        })
+
+    if role == "student":
+        student_id = request.session.get("student_id")
+        if not student_id or not Student.objects.filter(student_id=student_id).exists():
+            request.session.flush()
+            return Response({
+                "authenticated": False,
+                "role": None,
+                "student_id": None,
+                "is_admin": False,
+            })
+        return Response({
+            "authenticated": True,
+            "role": "student",
+            "student_id": student_id,
+            "is_admin": False,
+        })
+
+    if role == "admin":
+        return Response({
+            "authenticated": True,
+            "role": "admin",
+            "student_id": None,
+            "is_admin": True,
+        })
+
     return Response({
-        "authenticated": bool(role),
-        "role": role,
-        "student_id": request.session.get("student_id"),
-        "is_admin": _admin_required(request),
+        "authenticated": False,
+        "role": None,
+        "student_id": None,
+        "is_admin": False,
     })
 
 
