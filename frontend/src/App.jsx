@@ -8,6 +8,7 @@ import StudentLogin from "./pages/StudentLogin";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Students from "./pages/Students";
+import Courses from "./pages/Courses";
 import UploadCertificate from "./pages/UploadCertificate";
 import DatabaseConnection from "./pages/DatabaseConnection";
 import AdminLogin from "./pages/AdminLogin";
@@ -49,6 +50,14 @@ function App() {
           element={
             <ProtectedRoute role="admin">
               <Students />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/courses"
+          element={
+            <ProtectedRoute role="admin">
+              <Courses />
             </ProtectedRoute>
           }
         />

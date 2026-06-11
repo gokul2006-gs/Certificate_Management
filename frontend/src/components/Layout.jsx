@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   Award,
   BarChart3,
+  BookOpen,
   ChevronDown,
   Database,
   FileUp,
@@ -18,6 +19,7 @@ import api, { getCsrfToken, clearCsrfCache } from "../services/api";
 const adminLinks = [
   { to: "/admin-dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/students", label: "Students", icon: Users },
+  { to: "/courses", label: "Courses", icon: BookOpen },
   { to: "/upload-certificate", label: "Certificates", icon: FileUp },
   { to: "/database-connection", label: "Database", icon: Database },
 ];

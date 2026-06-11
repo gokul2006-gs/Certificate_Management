@@ -42,6 +42,10 @@ urlpatterns = [
         'api/certificates/',
         include('certificates.urls')
     ),
+    path(
+        'api/courses/',
+        include('courses.urls')
+    ),
      path("api/accounts/", include("accounts.urls")),
 
 ]
