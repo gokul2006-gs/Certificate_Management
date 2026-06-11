@@ -15,16 +15,49 @@ const WAKEUP_TIMEOUT_MS = 90000;
 const WAKEUP_RETRY_DELAY_MS = 5000;
 const WAKEUP_MAX_ATTEMPTS = 4;
 
+let cachedCsrfToken = null;
+
+export const clearCsrfCache = () => {
+  cachedCsrfToken = null;
+  delete api.defaults.headers.common["X-CSRFToken"];
+};
+
+export const getCsrfToken = async (force = false) => {
+  if (cachedCsrfToken && !force) {
+    return cachedCsrfToken;
+  }
+
+  const response = await requestWithRetry((timeoutMs) =>
+    api.get("/accounts/csrf/", { timeout: timeoutMs })
+  );
+
+  console.log("CSRF TOKEN:", response.data.csrfToken);
+  cachedCsrfToken = response.data.csrfToken;
+  api.defaults.headers.common["X-CSRFToken"] = cachedCsrfToken;
+
+  return cachedCsrfToken;
+};
+
 const api = axios.create({
   baseURL: resolveApiBaseUrl(),
   withCredentials: true,
   timeout: UPLOAD_TIMEOUT_MS,
 });
-api.interceptors.request.use((config) => {
-  const csrfToken = api.defaults.headers.common["X-CSRFToken"];
 
-  if (csrfToken) {
-    config.headers["X-CSRFToken"] = csrfToken;
+api.interceptors.request.use(async (config) => {
+  const method = config.method?.toLowerCase();
+  const isMutating = ["post", "put", "delete", "patch"].includes(method);
+
+  if (isMutating && !config.headers["X-CSRFToken"]) {
+    // If not cached, getCsrfToken() will fetch it. If already cached, it returns instantly.
+    try {
+      const csrfToken = await getCsrfToken();
+      if (csrfToken) {
+        config.headers["X-CSRFToken"] = csrfToken;
+      }
+    } catch (err) {
+      console.warn("Could not automatically retrieve CSRF token:", err);
+    }
   }
 
   return config;
@@ -59,7 +92,26 @@ async function requestWithRetry(requestFn, {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  async (error) => {
+    const originalRequest = error.config;
+    // If we get a 403 Forbidden and haven't retried yet, try to fetch a new CSRF token and retry
+    if (
+      error.response?.status === 403 &&
+      !originalRequest._retry &&
+      ["post", "put", "delete", "patch"].includes(originalRequest.method?.toLowerCase())
+    ) {
+      originalRequest._retry = true;
+      try {
+        console.log("CSRF expired or invalid. Retrying request with fresh CSRF token...");
+        const freshToken = await getCsrfToken(true); // Force fetch new token
+        originalRequest.headers["X-CSRFToken"] = freshToken;
+        return await api(originalRequest);
+      } catch (retryError) {
+        return Promise.reject(retryError);
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 export function formatApiError(error, fallback = "Request failed") {
@@ -90,16 +142,4 @@ export const checkSession = async () => {
   return response.data;
 };
 
-export const getCsrfToken = async () => {
-  const response = await requestWithRetry((timeoutMs) =>
-    api.get("/accounts/csrf/", { timeout: timeoutMs })
-  );
-
-  console.log("CSRF TOKEN:", response.data.csrfToken);
-
-  api.defaults.headers.common["X-CSRFToken"] =
-    response.data.csrfToken;
-
-  return response.data.csrfToken;
-};
 export default api;

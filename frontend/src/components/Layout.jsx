@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import api, { getCsrfToken } from "../services/api";
+import api, { getCsrfToken, clearCsrfCache } from "../services/api";
 
 const adminLinks = [
   { to: "/admin-dashboard", label: "Dashboard", icon: BarChart3 },
@@ -33,11 +33,11 @@ function Layout({ children, role = "admin" }) {
 
   const handleLogout = async () => {
     try {
-      await getCsrfToken();
       await api.post("/accounts/logout/");
     } catch (err) {
       console.error("Logout request error:", err);
     } finally {
+      clearCsrfCache();
       localStorage.clear();
       navigate(role === "admin" ? "/admin" : "/");
     }

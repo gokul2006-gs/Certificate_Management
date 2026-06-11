@@ -52,7 +52,7 @@ function DatabaseConnection() {
             type="button"
             onClick={testConnection}
             disabled={loading}
-            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-2.5 text-xs font-bold text-white hover:bg-slate-850 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-slate-950/15"
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-2.5 text-xs font-bold text-white hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-slate-950/15"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             {loading ? "Testing..." : "Trigger Status Check"}
@@ -60,10 +60,12 @@ function DatabaseConnection() {
         </div>
 
         {/* Diagnostics status card */}
-        <div className={`rounded-2xl border p-6 transition-all duration-300 ${panelStyles}`}>
+        <div className={`rounded-2xl border p-6 transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${panelStyles}`}>
           <div className="flex items-center gap-3">
-            <div className={`grid h-10 w-10 place-items-center rounded-xl ${
-              status === "connected" ? "bg-emerald-100 text-emerald-600" :
+            <div className={`grid h-10 w-10 place-items-center rounded-xl transition-all duration-300 ${
+              loading ? "animate-pulse" : ""
+            } ${
+              status === "connected" ? "bg-emerald-100 text-emerald-600 animate-float" :
               status === "error" ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"
             }`}>
               {status === "connected" ? <Database size={18} /> : <HardDrive size={18} />}

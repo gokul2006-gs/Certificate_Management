@@ -33,11 +33,28 @@ function StudentDashboard() {
   if (!student) {
     return (
       <Layout role="student">
-        <div className="glass-panel rounded-2xl p-8 text-center max-w-md mx-auto my-12 animate-fade-in-up">
-          <div className="mx-auto animate-pulse-slow grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-500 mb-4">
-            <Award size={24} />
+        <PageHeader title="Loading Profile..." eyebrow="Student Dashboard" />
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start animate-pulse">
+          <div className="space-y-6">
+            <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-4 border border-white/60">
+              <div className="h-4 w-32 shimmer-bg rounded" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="h-20 shimmer-bg rounded-xl" />
+                <div className="h-20 shimmer-bg rounded-xl" />
+                <div className="h-20 shimmer-bg rounded-xl" />
+                <div className="h-20 shimmer-bg rounded-xl" />
+              </div>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-3 border border-white/60">
+              <div className="h-4 w-40 shimmer-bg rounded" />
+              <div className="h-8 w-full shimmer-bg rounded-lg" />
+            </div>
           </div>
-          <p className="font-semibold text-slate-700">{message || "Accessing profile details..."}</p>
+          <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-4 border border-white/60">
+            <div className="h-6 w-48 shimmer-bg rounded" />
+            <div className="mx-auto aspect-square w-full max-w-[240px] shimmer-bg rounded-2xl" />
+            <div className="h-10 w-full shimmer-bg rounded-xl" />
+          </div>
         </div>
       </Layout>
     );
@@ -103,7 +120,7 @@ function StudentDashboard() {
                   ACTIVE & VALID
                 </span>
               </div>
-              <div className="mx-auto w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition hover:scale-[1.02] duration-300">
+              <div className="mx-auto w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition hover:scale-[1.05] hover:shadow-lg duration-300 cursor-pointer">
                 <img
                   src={certificate.qr}
                   alt="Certificate QR code"
@@ -142,7 +159,7 @@ function StudentDashboard() {
 
 function InfoCard({ icon: Icon, label, value, customBadge }) {
   return (
-    <div className="min-w-0 rounded-xl bg-slate-50/50 border border-slate-100 p-4 hover:bg-slate-50 transition duration-200">
+    <div className="min-w-0 rounded-xl bg-slate-50/50 border border-slate-105 p-4 hover:bg-white hover:scale-[1.02] hover:shadow-md transition-all duration-300 ease-out">
       <div className="mb-1.5 flex items-center gap-2 text-slate-400">
         <Icon className="shrink-0" size={15} />
         <span className="text-xs font-bold uppercase tracking-wider">{label}</span>

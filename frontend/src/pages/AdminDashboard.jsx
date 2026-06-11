@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Award, BookOpen, FileText, LogIn, Upload, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
-import api, { getCsrfToken } from "../services/api";
+import api from "../services/api";
 
 function formatDateTime(iso) {
   if (!iso) return "—";
@@ -60,7 +60,6 @@ function AdminDashboard() {
     setMessage("");
 
     try {
-      await getCsrfToken();
       const response = await api.post("/accounts/upload-excel/", formData);
       const createdCount = response.data.created_count ?? 0;
       const updatedCount = response.data.updated_count ?? 0;
@@ -82,25 +81,29 @@ function AdminDashboard() {
   const cards = [
     { label: "Total Registered Students", value: stats.students, icon: Users, color: "bg-primary-50 text-primary-600 border-primary-100" },
     { label: "Enrolled Courses", value: stats.courses, icon: BookOpen, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-    { label: "Issued Certificates", value: stats.certificates, icon: FileText, color: "bg-amber-50 text-amber-600 border-amber-100" },
+    { label: "Issued Certificates", value: stats.certificates, icon: FileText, color: "bg-amber-50 text-amber-600 border-amber-105" },
   ];
 
   return (
     <Layout role="admin">
       <PageHeader title="Admin Dashboard" eyebrow="Operations Overview">
-        <Link to="/upload-certificate" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4.5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition shadow-md shadow-slate-950/10 active:scale-[0.98]">
+        <Link to="/upload-certificate" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4.5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-all duration-300 hover:scale-[1.02] shadow-md shadow-slate-950/10 active:scale-[0.98]">
           <Award size={15} />
           Issue Certificate
         </Link>
       </PageHeader>
 
       {/* Stats Section */}
-      <section className="grid gap-6 md:grid-cols-3 animate-fade-in-up">
-        {cards.map((card) => {
+      <section className="grid gap-6 md:grid-cols-3 animate-scale-in">
+        {cards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className={`mb-4 grid h-10 w-10 place-items-center rounded-xl border ${card.color}`}>
+            <div 
+              key={card.label} 
+              className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out border-l-4 border-l-primary-500"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className={`mb-4 grid h-10 w-10 place-items-center rounded-xl border ${card.color} hover:scale-[1.05] transition-transform duration-250`}>
                 <Icon size={18} />
               </div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{card.label}</p>

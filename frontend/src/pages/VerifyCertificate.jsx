@@ -29,9 +29,9 @@ function VerifyCertificate() {
   if (loading) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-50/50 p-4">
-        <div className="text-center animate-pulse-slow">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary-100 text-primary-600 mb-3">
-            <ShieldCheck size={26} className="animate-spin" style={{ animationDuration: '3s' }} />
+        <div className="text-center animate-pulse">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary-100 text-primary-600 mb-3 shadow-md">
+            <ShieldCheck size={32} className="animate-rotate-slow" />
           </div>
           <p className="text-sm font-bold text-slate-700">Verifying credential integrity...</p>
         </div>
@@ -43,15 +43,15 @@ function VerifyCertificate() {
   const certificateUrl = data?.certificate || "";
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 sm:py-12 bg-slate-50/30 relative">
+    <main className="min-h-screen px-4 py-8 sm:px-6 sm:py-12 bg-slate-50/30 relative overflow-hidden">
       {/* Decorative gradients */}
-      <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-primary-500/5 blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent-500/5 blur-[80px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-primary-500/5 blur-[80px] pointer-events-none animate-float" />
+      <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent-500/5 blur-[80px] pointer-events-none animate-float [animation-delay:2s]" />
 
-      <section className="mx-auto w-full max-w-5xl rounded-3xl glass-panel p-6 shadow-xl relative z-10 animate-fade-in-up">
+      <section className="mx-auto w-full max-w-5xl rounded-3xl glass-panel p-6 shadow-xl relative z-10 animate-scale-in">
         {/* Verification Status Header */}
         <div className="mb-8 text-center">
-          <div className={`mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl shadow-md ${valid ? "bg-emerald-100 text-emerald-700 shadow-emerald-500/10" : "bg-red-100 text-red-700 shadow-red-500/10"}`}>
+          <div className={`mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl shadow-md ${valid ? "bg-emerald-100 text-emerald-700 shadow-emerald-500/10" : "bg-red-100 text-red-700 shadow-red-500/10"} hover:scale-[1.05] transition-transform duration-300`}>
             {valid ? <CheckCircle2 size={32} className="stroke-[2]" /> : <AlertTriangle size={32} />}
           </div>
           <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Secure Audit trail</p>
@@ -75,7 +75,7 @@ function VerifyCertificate() {
                   <img
                     src={certificateUrl}
                     alt="Verified certificate"
-                    className="mx-auto max-h-[60vh] w-full object-contain"
+                    className="mx-auto max-h-[60vh] w-full object-contain hover:scale-[1.01] transition-transform duration-500"
                   />
                 ) : (
                   <iframe
@@ -89,14 +89,14 @@ function VerifyCertificate() {
 
             {/* Right Column: Verification Stats Card */}
             <aside className="min-w-0 space-y-4">
-              <div className="rounded-2xl border border-emerald-200/50 bg-emerald-50/50 p-4 text-center">
+              <div className="rounded-2xl border border-emerald-200/50 bg-emerald-50/50 p-4 text-center hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-800">
                   Status Code
                 </p>
                 <p className="mt-1 text-base font-extrabold text-emerald-900">{data.certificate_status}</p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm hover:scale-[1.02] hover:shadow-md transition-all duration-300">
                 <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
                   Credential Details
                 </h2>
@@ -116,7 +116,7 @@ function VerifyCertificate() {
                 <a
                   href={data.download_url || certificateUrl}
                   download
-                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white hover:bg-slate-850 transition duration-200 shadow-md shadow-slate-950/15"
+                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-md shadow-slate-950/15"
                 >
                   <Download className="shrink-0" size={16} />
                   <span>Download PDF Document</span>
@@ -125,7 +125,7 @@ function VerifyCertificate() {
                   href={certificateUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50 transition duration-200 shadow-sm"
+                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-sm"
                 >
                   <ExternalLink className="shrink-0" size={16} />
                   <span>Inspect Original Asset</span>

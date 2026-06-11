@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
-import api, { getCsrfToken } from "../services/api";
+import api from "../services/api";
 
 const emptyForm = { name: "", email: "" };
 
@@ -48,7 +48,6 @@ function Students() {
 
   const handleCreate = async (event) => {
     event.preventDefault();
-    await getCsrfToken();
     await api.post("/accounts/students/", form);
     setForm(emptyForm);
     setMessage("Student created successfully (default password: Tech@123)");
@@ -61,7 +60,6 @@ function Students() {
   };
 
   const saveEdit = async (studentId) => {
-    await getCsrfToken();
     await api.put(`/accounts/students/${studentId}/`, editForm);
     setEditingId("");
     setMessage("Student registration updated");
@@ -71,7 +69,6 @@ function Students() {
   const deleteStudent = async (studentId) => {
     const confirmed = window.confirm(`Delete student ${studentId}?`);
     if (!confirmed) return;
-    await getCsrfToken();
     await api.delete(`/accounts/students/${studentId}/`);
     setSelectedStudentIds((prev) => prev.filter((id) => id !== studentId));
     setMessage("Student registration deleted");
@@ -103,7 +100,6 @@ function Students() {
     const confirmed = window.confirm(`Delete ${selectedCount} selected students?`);
     if (!confirmed) return;
 
-    await getCsrfToken();
     await api.post("/accounts/students/bulk-delete/", {
       student_ids: selectedStudentIds,
     });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Download, FileUp, Files, Upload, AlertCircle } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
-import api, { formatApiError, getCsrfToken } from "../services/api";
+import api, { formatApiError } from "../services/api";
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -42,7 +42,6 @@ function UploadCertificate() {
     setResult(null);
 
     try {
-      await getCsrfToken();
       const response = await api.post("/certificates/upload/", formData);
       setResult(response.data);
       setMessage("Certificate uploaded and secure QR code generated.");
@@ -78,7 +77,6 @@ function UploadCertificate() {
     setBulkResult(null);
 
     try {
-      await getCsrfToken();
       const response = await api.post("/certificates/bulk-upload/", formData);
       setBulkResult(response.data);
       setBulkMessage(
@@ -102,7 +100,6 @@ function UploadCertificate() {
     if (!activeJobId) return;
 
     try {
-      await getCsrfToken();
       await api.post(`/certificates/generation-jobs/${activeJobId}/cancel/`);
       setTemplateMessage("Certificate generation cancelled.");
     } catch (err) {
@@ -136,8 +133,6 @@ function UploadCertificate() {
     };
 
     try {
-      await getCsrfToken();
-
       const formData = new FormData();
       formData.append("template_file", templateFile);
       formData.append("issue_date", issueDate);
@@ -393,7 +388,7 @@ function UploadCertificate() {
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
-                    className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+                    className="h-full rounded-full bg-emerald-600 shimmer-bg transition-all duration-300"
                     style={{ width: `${templateProgress}%` }}
                   />
                 </div>
