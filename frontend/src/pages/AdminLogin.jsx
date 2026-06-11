@@ -19,7 +19,7 @@ function AdminLogin() {
 
     try {
       const csrfToken = await getCsrfToken();
-      await api.post(
+      const response = await api.post(
         "/accounts/login/",
         {
           username: form.username,
@@ -35,14 +35,7 @@ function AdminLogin() {
         }
       );
 
-      const session = await checkSession();
-      if (!session.authenticated || session.role !== "admin") {
-        throw new Error(
-          "Session could not be established. Try logging in again."
-        );
-      }
-
-      localStorage.setItem("role", session.role);
+      localStorage.setItem("role", response.data.role);
       navigate("/admin-dashboard");
     } catch (err) {
       setError(formatApiError(err, "Unable to sign in"));

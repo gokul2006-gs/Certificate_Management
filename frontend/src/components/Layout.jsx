@@ -85,10 +85,10 @@ function Layout({ children, role = "admin" }) {
                 onClick={() => setMenuOpen(false)}
                 to={item.to}
                 className={({ isActive }) =>
-                  `mb-1.5 flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 last:mb-0 lg:mb-0 ${
+                  `mb-1.5 flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-semibold active:scale-[0.97] transition-all duration-200 last:mb-0 lg:mb-0 ${
                     isActive
                       ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-600/10"
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100 hover:translate-x-1"
                   }`
                 }
               >
@@ -116,7 +116,7 @@ function Layout({ children, role = "admin" }) {
         <div className="p-4 border-t border-white/5">
           <button
             onClick={handleLogout}
-            className={`w-full ${menuOpen ? "flex" : "hidden"} items-center justify-center gap-2.5 rounded-xl border border-white/10 hover:border-red-500/20 px-4 py-3 text-sm font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-400 lg:flex transition duration-200`}
+            className={`w-full ${menuOpen ? "flex" : "hidden"} items-center justify-center gap-2.5 rounded-xl border border-white/10 hover:border-red-500/20 px-4 py-3 text-sm font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-400 lg:flex transition duration-205 active:scale-[0.97]`}
           >
             <LogOut size={16} />
             Logout
@@ -124,8 +124,8 @@ function Layout({ children, role = "admin" }) {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:ml-72 lg:px-10 animate-fade-in">
+      {/* Main Content Area with remount key for page transition animation */}
+      <main key={window.location.pathname} className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:ml-72 lg:px-10 animate-fade-in-up">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>

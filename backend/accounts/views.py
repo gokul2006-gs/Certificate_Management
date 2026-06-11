@@ -93,8 +93,6 @@ def login_view(request):
     if role == "admin":
         username = str(request.data.get("username", "")).strip()
         password = str(request.data.get("password", "")).strip()
-        print("LOGIN USERNAME:", username)
-        print("ALL USERS:", list(User.objects.values("username", "is_staff")))
         user = authenticate(
             request,
             username=username,

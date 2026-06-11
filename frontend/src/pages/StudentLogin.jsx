@@ -17,21 +17,14 @@ function StudentLogin() {
 
     try {
       await getCsrfToken();
-      await api.post("/accounts/login/", {
+      const response = await api.post("/accounts/login/", {
         role: "student",
         student_id: studentId,
         password,
       });
 
-      const session = await checkSession();
-      if (!session.authenticated || session.role !== "student") {
-        throw new Error(
-          "Session could not be established. Try logging in again."
-        );
-      }
-
-      localStorage.setItem("role", session.role);
-      localStorage.setItem("student_id", session.student_id);
+      localStorage.setItem("role", "student");
+      localStorage.setItem("student_id", response.data.student_id);
       navigate("/student-dashboard");
     } catch (err) {
       setError(formatApiError(err, "Login failed"));
