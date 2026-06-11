@@ -289,7 +289,7 @@ def _generated_certificate_file(student, template_file, issue_date):
     )
 
     buffer = BytesIO()
-    template.save(buffer, format="PNG", optimize=True)
+    template.save(buffer, format="PNG")
     buffer.seek(0)
     return ContentFile(buffer.read(), name=f"{student.student_id}-certificate.png")
 
