@@ -1,24 +1,12 @@
 import AuthService from "./AuthService";
 
 export class RouteGuard {
-  constructor({ requiredRole = null, guestOnly = false } = {}) {
+  constructor({ requiredRole = null } = {}) {
     this.requiredRole = requiredRole;
-    this.guestOnly = guestOnly;
   }
 
   evaluate(session) {
     const authenticated = Boolean(session?.authenticated);
-
-    if (this.guestOnly) {
-      if (!authenticated) {
-        return { allowed: true };
-      }
-
-      return {
-        allowed: false,
-        redirect: AuthService.getDashboardPath(session.role),
-      };
-    }
 
     if (!authenticated) {
       return {

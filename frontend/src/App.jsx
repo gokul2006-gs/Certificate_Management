@@ -1,22 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./navigation/ProtectedRoute";
-import PublicRoute from "./navigation/PublicRoute";
 import { APP_ROUTES } from "./navigation/appRoutes";
 
 function wrapRoute(route) {
   const Page = route.element;
 
-  if (route.access === "open") {
+  if (route.access === "open" || route.access === "guest") {
     return <Page />;
-  }
-
-  if (route.access === "guest") {
-    return (
-      <PublicRoute>
-        <Page />
-      </PublicRoute>
-    );
   }
 
   return (
