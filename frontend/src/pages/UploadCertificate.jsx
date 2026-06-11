@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Download, FileUp, Files, Upload } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
-import api, { formatApiError, getCsrfToken } from "../services/api";
+import api, { getCsrfToken } from "../api";
+
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -140,7 +141,7 @@ if (fileInput) {
       formData.append("template_file", templateFile);
       formData.append("issue_date", issueDate);
       students.forEach((student) => formData.append("student_ids", student.student_id));
-
+      
       const startResponse = await api.post("/certificates/generation-jobs/", formData);
       const jobId = startResponse.data.job_id;
       setActiveJobId(jobId);

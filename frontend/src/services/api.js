@@ -20,6 +20,15 @@ const api = axios.create({
   withCredentials: true,
   timeout: UPLOAD_TIMEOUT_MS,
 });
+api.interceptors.request.use((config) => {
+  const csrfToken = api.defaults.headers.common["X-CSRFToken"];
+
+  if (csrfToken) {
+    config.headers["X-CSRFToken"] = csrfToken;
+  }
+
+  return config;
+});
 
 function isRetryableNetworkError(error) {
   return !error?.response;
@@ -85,8 +94,12 @@ export const getCsrfToken = async () => {
   const response = await requestWithRetry((timeoutMs) =>
     api.get("/accounts/csrf/", { timeout: timeoutMs })
   );
-  api.defaults.headers.common["X-CSRFToken"] = response.data.csrfToken;
+
+  console.log("CSRF TOKEN:", response.data.csrfToken);
+
+  api.defaults.headers.common["X-CSRFToken"] =
+    response.data.csrfToken;
+
   return response.data.csrfToken;
 };
-console.log("API BASE URL:", resolveApiBaseUrl());
 export default api;
