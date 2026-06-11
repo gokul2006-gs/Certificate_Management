@@ -1,6 +1,7 @@
 from bson import ObjectId
 from bson.errors import InvalidId
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.conf import settings
 from django.db import connection
@@ -79,7 +80,7 @@ def _admin_required(request):
 @ensure_csrf_cookie
 @api_view(["GET"])
 def csrf_token(request):
-    return Response({"test": "working"})
+    return Response({"csrfToken": get_token(request)})
 
 @api_view(["POST"])
 def login_view(request):
@@ -87,21 +88,20 @@ def login_view(request):
 
     logout(request)
     request.session.flush()
-    if role == "admin":
-       print("ROLE:", role)
     print("REQUEST DATA:", request.data)
 
-    username = str(request.data.get("username", "")).strip()
-    password = str(request.data.get("password", "")).strip()
-    print("LOGIN USERNAME:", username)
-    print("ALL USERS:", list(User.objects.values("username", "is_staff")))
-    user = authenticate(
-    request,
-    username=username,
-    password=password,
-)
-    print("AUTH RESULT:", user)
-    if user and user.is_staff:
+    if role == "admin":
+        username = str(request.data.get("username", "")).strip()
+        password = str(request.data.get("password", "")).strip()
+        print("LOGIN USERNAME:", username)
+        print("ALL USERS:", list(User.objects.values("username", "is_staff")))
+        user = authenticate(
+            request,
+            username=username,
+            password=password,
+        )
+        print("AUTH RESULT:", user)
+        if user and user.is_staff:
             login(request, user)
             request.session["role"] = "admin"
 
@@ -116,7 +116,7 @@ def login_view(request):
                 "role": "admin",
                 "username": user.username,
             })
-    return Response(
+        return Response(
             {"error": "Invalid admin credentials"},
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -517,16 +517,9 @@ def admin_login_logs(request):
         for log in logs
     ]
     return Response(data)
-from django.conf import settings
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
 @api_view(["GET"])
 def test_env(request):
     return Response({"test": "working"})
-from django.contrib.auth.models import User
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
 
 @api_view(["GET"])
 def admin_check(request):

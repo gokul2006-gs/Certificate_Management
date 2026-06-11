@@ -36,3 +36,33 @@ class SessionSerializationTests(TestCase):
         session.save()
 
         self.assertTrue(session.session_key)
+
+
+class AccountsViewTests(TestCase):
+    def test_csrf_token_endpoint(self):
+        response = self.client.get('/api/accounts/csrf/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('csrfToken', data)
+        self.assertTrue(len(data['csrfToken']) > 0)
+
+    def test_student_login_success(self):
+        course = Course.objects.create(course_name="Test Course", duration="1 Month")
+        student = Student.objects.create(
+            student_id="TSC001",
+            name="Student Name",
+            email="student@example.com",
+            password="password123",
+            course=course,
+        )
+        response = self.client.post(
+            '/api/accounts/login/',
+            data={"role": "student", "student_id": "TSC001", "password": "password123"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['role'], 'student')
+        self.assertEqual(data['student_id'], 'TSC001')
+        self.assertEqual(data['name'], 'Student Name')
+
