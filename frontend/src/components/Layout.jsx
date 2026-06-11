@@ -14,8 +14,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import api, { clearCsrfCache } from "../services/api";
-import AuthService from "../navigation/AuthService";
+import { useAuth } from "../navigation/AuthContext";
 
 const adminLinks = [
   { to: "/admin-dashboard", label: "Dashboard", icon: BarChart3 },
@@ -31,19 +30,13 @@ const studentLinks = [
 
 function Layout({ children, role = "admin" }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const links = role === "admin" ? adminLinks : studentLinks;
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await api.post("/accounts/logout/");
-    } catch (err) {
-      console.error("Logout request error:", err);
-    } finally {
-      clearCsrfCache();
-      AuthService.clearAll();
-      navigate(role === "admin" ? "/admin" : "/");
-    }
+    const loginPath = await logout(role);
+    navigate(loginPath, { replace: true });
   };
 
   return (

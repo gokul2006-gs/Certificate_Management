@@ -3,6 +3,13 @@ import AuthService from "./AuthService";
 
 const AuthContext = createContext(null);
 
+export const GUEST_SESSION = {
+  authenticated: false,
+  role: null,
+  student_id: null,
+  is_admin: false,
+};
+
 export class AuthController {
   async loadSession() {
     const session = await AuthService.fetchSession();
@@ -35,6 +42,21 @@ export function AuthProvider({ children }) {
     return nextSession;
   }, [controller]);
 
+  const logout = useCallback(async (role) => {
+    try {
+      const { default: api, clearCsrfCache } = await import("../services/api");
+      await api.post("/accounts/logout/");
+      clearCsrfCache();
+    } catch (error) {
+      console.error("Logout request error:", error);
+    } finally {
+      AuthService.clearAll();
+      setSession(GUEST_SESSION);
+    }
+
+    return role === "admin" ? "/admin" : "/";
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -48,7 +70,7 @@ export function AuthProvider({ children }) {
       .catch(() => {
         if (active) {
           AuthService.clearLocal();
-          setSession({ authenticated: false });
+          setSession(GUEST_SESSION);
         }
       })
       .finally(() => {
@@ -68,9 +90,10 @@ export function AuthProvider({ children }) {
       loading,
       controller,
       refreshSession,
+      logout,
       setSession,
     }),
-    [session, loading, controller, refreshSession]
+    [session, loading, controller, refreshSession, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

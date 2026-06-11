@@ -6,7 +6,7 @@ import { RouteGuard } from "./RouteGuard";
 import RouteLoading from "./RouteLoading";
 
 function ProtectedRoute({ children, role }) {
-  const { session, loading, controller, refreshSession } = useAuth();
+  const { session, loading, refreshSession } = useAuth();
   const guard = useMemo(() => new RouteGuard({ requiredRole: role }), [role]);
   const [result, setResult] = useState({ status: "loading" });
 
@@ -15,7 +15,7 @@ function ProtectedRoute({ children, role }) {
 
     const verifyAccess = async () => {
       try {
-        const currentSession = session ?? (await refreshSession());
+        const currentSession = await refreshSession();
         const decision = guard.evaluate(currentSession);
 
         if (!active) return;
@@ -43,7 +43,7 @@ function ProtectedRoute({ children, role }) {
     return () => {
       active = false;
     };
-  }, [guard, role, session, loading, refreshSession, controller]);
+  }, [guard, role, session?.authenticated, loading, refreshSession]);
 
   if (loading || result.status === "loading") {
     return <RouteLoading />;

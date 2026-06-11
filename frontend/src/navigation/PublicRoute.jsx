@@ -15,7 +15,7 @@ function PublicRoute({ children }) {
 
     const verifyGuestAccess = async () => {
       try {
-        const currentSession = session ?? (await refreshSession());
+        const currentSession = await refreshSession();
         const decision = guard.evaluate(currentSession);
 
         if (!active) return;
@@ -40,7 +40,7 @@ function PublicRoute({ children }) {
     return () => {
       active = false;
     };
-  }, [guard, session, loading, refreshSession]);
+  }, [guard, session?.authenticated, loading, refreshSession]);
 
   if (loading || result.status === "loading") {
     return <RouteLoading message="Loading portal..." />;
