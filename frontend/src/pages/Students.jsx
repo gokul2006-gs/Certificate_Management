@@ -51,7 +51,7 @@ function Students() {
     await getCsrfToken();
     await api.post("/accounts/students/", form);
     setForm(emptyForm);
-    setMessage("Student created with default password Tech@123");
+    setMessage("Student created successfully (default password: Tech@123)");
     loadStudents();
   };
 
@@ -64,7 +64,7 @@ function Students() {
     await getCsrfToken();
     await api.put(`/accounts/students/${studentId}/`, editForm);
     setEditingId("");
-    setMessage("Student updated");
+    setMessage("Student registration updated");
     loadStudents();
   };
 
@@ -74,7 +74,7 @@ function Students() {
     await getCsrfToken();
     await api.delete(`/accounts/students/${studentId}/`);
     setSelectedStudentIds((prev) => prev.filter((id) => id !== studentId));
-    setMessage("Student deleted");
+    setMessage("Student registration deleted");
     loadStudents();
   };
 
@@ -108,138 +108,163 @@ function Students() {
       student_ids: selectedStudentIds,
     });
     setSelectedStudentIds([]);
-    setMessage(`${selectedCount} students deleted`);
+    setMessage(`${selectedCount} students successfully deleted`);
     loadStudents();
   };
 
   return (
     <Layout role="admin">
-      <PageHeader title="Students" eyebrow="Student Registry" />
+      <PageHeader title="Students" eyebrow="Registry Management" />
 
-      <section className="mb-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <form onSubmit={handleCreate} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+      {/* Creation form */}
+      <section className="mb-8 rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm animate-fade-in-up">
+        <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">Add New Registration</h3>
+        <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
           <input
             value={form.name}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
             required
-            placeholder="Student name"
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-cyan-600"
+            placeholder="Full Name"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
           />
           <input
             type="email"
             value={form.email}
             onChange={(event) => setForm({ ...form, email: event.target.value })}
             required
-            placeholder="Email address"
-            className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-cyan-600"
+            placeholder="Email Address"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
           />
-          <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 font-semibold text-white hover:bg-slate-800">
-            <Plus size={18} />
-            Add Student
+          <button className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-xs font-bold text-white hover:bg-slate-850 active:scale-[0.98] transition duration-200 shadow-md shadow-slate-950/15">
+            <Plus size={16} />
+            Register Student
           </button>
         </form>
-        {message && <p className="mt-3 text-sm font-medium text-cyan-700">{message}</p>}
+        {message && (
+          <div className="mt-4 rounded-xl bg-primary-50 border border-primary-100 p-4 text-xs font-semibold text-primary-700">
+            {message}
+          </div>
+        )}
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="font-semibold text-slate-950">All Students</h3>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {/* Registry Database view */}
+      <section className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden animate-fade-in-up">
+        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 bg-slate-50/50 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold tracking-tight text-slate-800">Student Database</h3>
+            <p className="text-[10px] text-slate-400">Total profiles: {filteredStudents.length}</p>
+          </div>
+          
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label className="relative">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+              <Search className="absolute left-3.5 top-3 text-slate-400" size={15} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search students"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 outline-none focus:border-cyan-600 sm:w-72"
+                placeholder="Search database..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-slate-800 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 sm:w-64"
               />
             </label>
             <button
               onClick={deleteSelectedStudents}
               disabled={!selectedCount}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 shadow-md shadow-red-600/10"
             >
-              <Trash2 size={16} />
-              Delete Selected ({selectedCount})
+              <Trash2 size={14} />
+              Delete ({selectedCount})
             </button>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="w-full min-w-[760px] text-left text-xs">
+            <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3">
+                <th className="px-5 py-3.5 w-12">
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
                     onChange={toggleSelectAllFiltered}
+                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     aria-label="Select all students"
                   />
                 </th>
-                <th className="px-4 py-3">Student ID</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Course</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-5 py-3.5">Student ID</th>
+                <th className="px-5 py-3.5">Name</th>
+                <th className="px-5 py-3.5">Email</th>
+                <th className="px-5 py-3.5">Course Specialization</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredStudents.map((student) => (
-                <tr key={student.student_id}>
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudentIds.includes(student.student_id)}
-                      onChange={() => toggleSelectStudent(student.student_id)}
-                      aria-label={`Select ${student.student_id}`}
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-slate-950">{student.student_id}</td>
-                  <td className="px-4 py-3">
-                    {editingId === student.student_id ? (
-                      <input
-                        value={editForm.name}
-                        onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                        className="w-full rounded border border-slate-300 px-2 py-1"
-                      />
-                    ) : student.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    {editingId === student.student_id ? (
-                      <input
-                        value={editForm.email}
-                        onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
-                        className="w-full rounded border border-slate-300 px-2 py-1"
-                      />
-                    ) : student.email}
-                  </td>
-                  <td className="px-4 py-3">{student.course_name}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      {editingId === student.student_id ? (
-                        <>
-                          <button title="Save" onClick={() => saveEdit(student.student_id)} className="rounded-lg bg-cyan-100 p-2 text-cyan-700 hover:bg-cyan-200">
-                            <Save size={17} />
-                          </button>
-                          <button title="Cancel" onClick={() => setEditingId("")} className="rounded-lg bg-slate-100 p-2 text-slate-700 hover:bg-slate-200">
-                            <X size={17} />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button title="Edit" onClick={() => startEdit(student)} className="rounded-lg bg-slate-100 p-2 text-slate-700 hover:bg-slate-200">
-                            <Pencil size={17} />
-                          </button>
-                          <button title="Delete" onClick={() => deleteStudent(student.student_id)} className="rounded-lg bg-red-50 p-2 text-red-700 hover:bg-red-100">
-                            <Trash2 size={17} />
-                          </button>
-                        </>
-                      )}
-                    </div>
+            <tbody className="divide-y divide-slate-100 text-slate-600">
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center font-medium text-slate-400">
+                    No students matching your search criteria.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredStudents.map((student) => (
+                  <tr key={student.student_id} className="hover:bg-slate-50/50 transition">
+                    <td className="px-5 py-3.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudentIds.includes(student.student_id)}
+                        onChange={() => toggleSelectStudent(student.student_id)}
+                        className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                        aria-label={`Select ${student.student_id}`}
+                      />
+                    </td>
+                    <td className="px-5 py-3.5 font-bold text-slate-800">{student.student_id}</td>
+                    <td className="px-5 py-3.5">
+                      {editingId === student.student_id ? (
+                        <input
+                          value={editForm.name}
+                          onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-800 outline-none focus:border-primary-500"
+                        />
+                      ) : student.name}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {editingId === student.student_id ? (
+                        <input
+                          value={editForm.email}
+                          onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-800 outline-none focus:border-primary-500"
+                        />
+                      ) : student.email}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+                        {student.course_name || "Unenrolled"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex justify-end gap-2">
+                        {editingId === student.student_id ? (
+                          <>
+                            <button title="Save" onClick={() => saveEdit(student.student_id)} className="rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 p-2 text-emerald-700 transition">
+                              <Save size={15} />
+                            </button>
+                            <button title="Cancel" onClick={() => setEditingId("")} className="rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-100 p-2 text-slate-600 transition">
+                              <X size={15} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button title="Edit" onClick={() => startEdit(student)} className="rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-150 p-2 text-slate-600 transition">
+                              <Pencil size={15} />
+                            </button>
+                            <button title="Delete" onClick={() => deleteStudent(student.student_id)} className="rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 p-2 text-red-700 transition">
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

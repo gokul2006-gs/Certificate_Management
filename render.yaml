@@ -5,7 +5,7 @@ services:
     runtime: python
     rootDir: backend
     buildCommand: ./build.sh
-    startCommand: sh -c "python manage.py migrate && python manage.py ensure_admin && gunicorn config.wsgi --timeout 120 --workers 1"
+    startCommand: sh -c "python manage.py migrate && python manage.py ensure_admin && gunicorn config.wsgi --timeout 120 --workers 3 --threads 2"
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"

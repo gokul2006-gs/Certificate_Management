@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: ts3-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  web-backend-1:
+    build:
+      context: ./backend
+    container_name: ts3-backend-1
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=django-insecure-lb-backend-instance-1
+      - ALLOWED_HOSTS=*
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_NAME=TS3
+      - FRONTEND_BASE_URL=http://localhost:8080
+      - FRONTEND_ALLOWED_ORIGINS=http://localhost:8080
+    volumes:
+      - backend_media:/app/media
+
+  web-backend-2:
+    build:
+      context: ./backend
+    container_name: ts3-backend-2
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=django-insecure-lb-backend-instance-2
+      - ALLOWED_HOSTS=*
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_NAME=TS3
+      - FRONTEND_BASE_URL=http://localhost:8080
+      - FRONTEND_ALLOWED_ORIGINS=http://localhost:8080
+    volumes:
+      - backend_media:/app/media
+
+  nginx-lb:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: ts3-nginx-lb
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - web-backend-1
+      - web-backend-2
+
+volumes:
+  mongo_data:
+  backend_media:

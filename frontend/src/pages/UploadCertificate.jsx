@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { BadgeCheck, Download, FileUp, Files, Upload } from "lucide-react";
+import { BadgeCheck, Download, FileUp, Files, Upload, AlertCircle } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api, { formatApiError, getCsrfToken } from "../services/api";
-
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -46,18 +45,15 @@ function UploadCertificate() {
       await getCsrfToken();
       const response = await api.post("/certificates/upload/", formData);
       setResult(response.data);
-      setMessage("Certificate uploaded and QR code generated");
+      setMessage("Certificate uploaded and secure QR code generated.");
 
       setStudentId("");
       setFile(null);
 
-     const fileInput = document.querySelector(
-  'input[type="file"]'
-);
-
-if (fileInput) {
-  fileInput.value = "";
-}
+      const fileInput = document.getElementById("single-cert-file");
+      if (fileInput) {
+        fileInput.value = "";
+      }
     } catch (err) {
       setMessage(err.response?.data?.error || "Upload failed");
     } finally {
@@ -86,10 +82,15 @@ if (fileInput) {
       const response = await api.post("/certificates/bulk-upload/", formData);
       setBulkResult(response.data);
       setBulkMessage(
-        `${response.data.created_count} certificates uploaded, ${response.data.skipped_count} skipped`
+        `Bulk operation complete: ${response.data.created_count} certificates issued, ${response.data.skipped_count} skipped.`
       );
       setBulkFiles([]);
       setZipFile(null);
+      
+      const bulkFileInput = document.getElementById("bulk-cert-files");
+      const zipFileInput = document.getElementById("bulk-zip-file");
+      if (bulkFileInput) bulkFileInput.value = "";
+      if (zipFileInput) zipFileInput.value = "";
     } catch (err) {
       setBulkMessage(err.response?.data?.error || "Bulk upload failed");
     } finally {
@@ -122,7 +123,7 @@ if (fileInput) {
     }
 
     setTemplateLoading(true);
-    setTemplateMessage("Starting background certificate generation...");
+    setTemplateMessage("Initializing background generator task...");
     setTemplateResult(null);
     setTemplateProgress(0);
     setActiveJobId(null);
@@ -156,7 +157,7 @@ if (fileInput) {
         aggregated.skipped_count = job.skipped_count;
         setTemplateProgress(job.progress_percent || 0);
         setTemplateMessage(
-          `Generating certificates ${job.processed_count} of ${job.total_count} (${job.progress_percent}%)...`
+          `Processing credentials: ${job.processed_count} of ${job.total_count} (${job.progress_percent}%)...`
         );
 
         if (job.status === "completed") {
@@ -177,9 +178,11 @@ if (fileInput) {
 
       setTemplateResult(aggregated);
       setTemplateMessage(
-        `${aggregated.created_count} certificates generated, ${aggregated.skipped_count} skipped`
+        `Generation complete: ${aggregated.created_count} certificates generated, ${aggregated.skipped_count} skipped.`
       );
       setTemplateFile(null);
+      const templateFileInput = document.getElementById("template-file");
+      if (templateFileInput) templateFileInput.value = "";
     } catch (err) {
       if (aggregated.created_count > 0) {
         setTemplateResult(aggregated);
@@ -198,198 +201,194 @@ if (fileInput) {
 
   return (
     <Layout role="admin">
-      <PageHeader title="Upload Certificate" eyebrow="Certificate Management" />
-      <div className="mb-5 grid gap-4 md:grid-cols-3">
-
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm text-slate-500">
-            Total Students
-          </h3>
-          <p className="mt-2 text-3xl font-bold text-slate-950">
-            {students.length}
-          </p>
+      <PageHeader title="Issue Certificates" eyebrow="Credential Management" />
+      
+      {/* Overview stats */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-3 animate-fade-in-up">
+        <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Registered Students</p>
+          <p className="mt-1.5 text-2xl font-extrabold text-slate-800 font-display">{students.length}</p>
         </div>
-
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm text-slate-500">
-            Single Upload
-          </h3>
-          <p className="mt-2 text-lg font-semibold text-emerald-600">
-            Available
-          </p>
+        <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Direct Issuing Status</p>
+          <p className="mt-1.5 text-sm font-bold text-emerald-600">Online & Ready</p>
         </div>
-
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm text-slate-500">
-            Template Generate
-          </h3>
-          <p className="mt-2 text-lg font-semibold text-cyan-600">
-            Supported
-          </p>
+        <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Template Engine</p>
+          <p className="mt-1.5 text-sm font-bold text-primary-600">Active (Batch Mode)</p>
         </div>
-
       </div>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_380px]">
-        <div className="space-y-5">
-          <form onSubmit={handleUpload} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2 text-slate-950">
-              <FileUp size={20} />
-              <h3 className="font-semibold">Single Certificate Upload</h3>
+      <div className="grid gap-8 xl:grid-cols-[1fr_360px] items-start animate-fade-in-up">
+        {/* Left column: Forms */}
+        <div className="space-y-8">
+          
+          {/* Single Upload Form */}
+          <form onSubmit={handleUpload} className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center gap-2.5 text-slate-800">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary-50 text-primary-600">
+                <FileUp size={16} />
+              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wider">Single Student Upload</h3>
             </div>
 
             <label className="mb-4 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Student</span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Student Profile</span>
               <select
                 value={studentId}
                 onChange={(event) => setStudentId(event.target.value)}
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-3 outline-none focus:border-cyan-600"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200"
               >
                 <option value="">Select student</option>
                 {students.map((student) => (
                   <option key={student.student_id} value={student.student_id}>
-                    {student.student_id} - {student.name}
+                    {student.student_id} — {student.name}
                   </option>
                 ))}
               </select>
             </label>
 
-            <label className="mb-5 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">
-                Certificate File
-              </span>
-
+            <label className="mb-6 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Certificate File (PDF, JPG, PNG)</span>
               <input
                 type="file"
+                id="single-cert-file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={(event) => setFile(event.target.files?.[0] || null)}
                 required
-                className="w-full rounded-lg border border-slate-300 px-3 py-3"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200"
               />
-
-              {file && (
-                <p className="mt-2 text-sm text-slate-500">
-                  Selected File: {file.name}
-                </p>
-              )}
             </label>
 
             <button
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-5 py-3 font-semibold text-white hover:bg-cyan-700 disabled:opacity-60"
+              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-primary-600/15"
             >
-              <FileUp size={18} />
-              {loading ? "Uploading..." : "Upload and Generate QR"}
+              <FileUp size={15} />
+              {loading ? "Uploading..." : "Issue & Build QR"}
             </button>
 
-            {message && <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
+            {message && (
+              <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-4 text-xs font-semibold text-slate-700">
+                {message}
+              </div>
+            )}
           </form>
 
-          <form onSubmit={handleBulkUpload} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2 text-slate-950">
-              <Files size={20} />
-              <h3 className="font-semibold">Bulk Certificate Upload</h3>
+          {/* Bulk Upload Form */}
+          <form onSubmit={handleBulkUpload} className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center gap-2.5 text-slate-800">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600">
+                <Files size={16} />
+              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wider">Bulk Certificate Upload</h3>
             </div>
 
-            <div className="mb-4 rounded-lg bg-cyan-50 p-4 text-sm text-cyan-900">
-              Name each certificate with the student ID, for example <strong>TSC001.pdf</strong>,
-              <strong> TSC002.png</strong>, or <strong>course_TSC003.jpg</strong>. You can upload
-              many files together or one ZIP containing all certificates.
+            <div className="mb-6 flex items-start gap-3 rounded-xl bg-primary-50/50 border border-primary-100 p-4 text-xs leading-relaxed text-slate-600">
+              <AlertCircle size={16} className="text-primary-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-slate-700 mb-1">Filenaming Convention Required</span>
+                Name each file with its respective student ID (e.g. <code className="bg-white px-1 py-0.5 rounded border">TSC001.pdf</code> or <code className="bg-white px-1 py-0.5 rounded border">internship_TSC002.png</code>). You can select multiple files or upload a single <code className="bg-white px-1 py-0.5 rounded border">.zip</code> package.
+              </div>
             </div>
 
             <label className="mb-4 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Certificate Files</span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Select Multiple Certificate Assets</span>
               <input
                 type="file"
+                id="bulk-cert-files"
                 accept=".pdf,.jpg,.jpeg,.png"
                 multiple
                 onChange={(event) => setBulkFiles(Array.from(event.target.files || []))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-3"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200"
               />
             </label>
 
-            <label className="mb-5 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">ZIP File</span>
+            <label className="mb-6 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Or Upload a ZIP Archive</span>
               <input
                 type="file"
+                id="bulk-zip-file"
                 accept=".zip"
                 onChange={(event) => setZipFile(event.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-3"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200"
               />
             </label>
 
             <button
               disabled={bulkLoading || (!bulkFiles.length && !zipFile)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-60 sm:w-auto"
+              className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-2.5 text-xs font-bold text-white hover:bg-slate-850 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-slate-950/15"
             >
-              <Upload size={18} />
-              {bulkLoading ? "Uploading certificates..." : "Upload Bulk Certificates"}
+              <Upload size={15} />
+              {bulkLoading ? "Extracting & Uploading..." : "Process Bulk Upload"}
             </button>
 
             {bulkMessage && (
-              <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{bulkMessage}</p>
+              <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-4 text-xs font-semibold text-slate-700">
+                {bulkMessage}
+              </div>
             )}
           </form>
 
-          <form onSubmit={handleTemplateGenerate} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2 text-slate-950">
-              <BadgeCheck size={20} />
-              <h3 className="font-semibold">Generate Certificates from Template</h3>
+          {/* Template Generator Form */}
+          <form onSubmit={handleTemplateGenerate} className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center gap-2.5 text-slate-800">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
+                <BadgeCheck size={16} />
+              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wider">Generate from PNG/JPG Template</h3>
             </div>
 
-            <div className="mb-4 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-900">
-              Upload one blank JPG/PNG certificate template. Large batches (500+) run as a background
-              job with live progress, so the browser will not time out.
+            <div className="mb-6 rounded-xl bg-emerald-50/50 border border-emerald-100 p-4 text-xs leading-relaxed text-emerald-800">
+              Upload a high-resolution blank template image. The engine will overlay student parameters and render unique validation credentials in a background loop, keeping server processes light and fast.
             </div>
 
             <label className="mb-4 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Blank Certificate Template</span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Blank Layout Design (JPG, PNG)</span>
               <input
                 type="file"
+                id="template-file"
                 accept=".jpg,.jpeg,.png"
                 onChange={(event) => setTemplateFile(event.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-3"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200"
               />
-              {templateFile && (
-                <p className="mt-2 text-sm text-slate-500">Selected Template: {templateFile.name}</p>
-              )}
             </label>
 
-            <label className="mb-5 block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Issue Date</span>
+            <label className="mb-6 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Certificate Issue Date</span>
               <input
                 type="date"
                 value={issueDate}
                 onChange={(event) => setIssueDate(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-3 outline-none focus:border-cyan-600"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-205"
               />
             </label>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 disabled={templateLoading || !templateFile}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-emerald-600/15"
               >
-                <BadgeCheck size={18} />
-                {templateLoading ? "Generating certificates..." : "Generate for All Students"}
+                <BadgeCheck size={15} />
+                {templateLoading ? "Rending assets..." : "Generate Batch Certificates"}
               </button>
 
               {templateLoading && activeJobId && (
                 <button
                   type="button"
                   onClick={handleCancelGeneration}
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 px-5 py-3 font-semibold text-red-700 hover:bg-red-50 sm:w-auto"
+                  className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-red-200 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-50 transition duration-200"
                 >
-                  Cancel
+                  Cancel Job
                 </button>
               )}
             </div>
 
             {templateLoading && (
-              <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-                  <span>Progress</span>
+              <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+                  <span>Batch Rendering Progress</span>
                   <span>{templateProgress}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-200">
@@ -402,102 +401,103 @@ if (fileInput) {
             )}
 
             {templateMessage && (
-              <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{templateMessage}</p>
+              <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-4 text-xs font-semibold text-slate-700">
+                {templateMessage}
+              </div>
             )}
           </form>
         </div>
 
-        <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        {/* Right column: Previews */}
+        <aside className="glass-panel rounded-2xl p-6 shadow-sm space-y-6">
           <div>
-            <h3 className="font-semibold">
-              Generated QR Code
-            </h3>
-
-            <p className="text-sm text-slate-500">
-              Scan to verify certificate
-            </p>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Generated QR Code</h3>
+            <p className="text-xs text-slate-400">Preview issued secure signature QR</p>
           </div>
+
           {result?.qr ? (
-            <div>
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-full max-w-[200px] rounded-2xl border border-slate-150 bg-white p-4 shadow-sm">
+                <img
+                  src={result.qr}
+                  alt="Generated certificate QR code"
+                  className="aspect-square w-full object-contain"
+                />
+              </div>
 
-              <img
-                src={result.qr}
-                alt="Generated certificate QR code"
-                className="mx-auto h-56 w-56 rounded-lg border border-slate-200 object-contain p-3"
-              />
-
-              <a
-                href={result.download_url}
-                rel="noreferrer"
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 font-semibold text-white hover:bg-slate-800"
-              >
-                <Download size={17} />
-                Download Certificate
-              </a>
-
-              {result?.verification_url && (
+              <div className="space-y-3 pt-2">
                 <a
-                  href={result.verification_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 block text-center font-medium text-cyan-600 hover:underline"
+                  href={result.download_url}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-xs font-bold text-white hover:bg-slate-850 transition duration-200 shadow-md"
                 >
-                  Open Verification Page
+                  <Download size={14} />
+                  Download File
                 </a>
-              )}
 
+                {result?.verification_url && (
+                  <a
+                    href={result.verification_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-xs font-bold uppercase tracking-wider text-primary-600 hover:text-primary-700 transition"
+                  >
+                    Open Live verification page
+                  </a>
+                )}
+              </div>
             </div>
           ) : (
-            <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
-              Upload a certificate to preview the generated QR code and download link.
-            </p>
+            <div className="rounded-xl bg-slate-50/80 border border-slate-100 p-5 text-center text-xs font-semibold text-slate-400 leading-relaxed">
+              Upload a certificate or process a layout template to preview the cryptographic signature QR and details.
+            </div>
           )}
         </aside>
-      </section>
+      </div>
 
+      {/* Results logs */}
       {bulkResult && (
-        <section className="mt-5 rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-950">Bulk Upload Result</h3>
-            <p className="text-sm text-slate-500">
-              {bulkResult.created_count} uploaded successfully, {bulkResult.skipped_count} skipped.
+        <section className="mt-8 rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden animate-fade-in-up">
+          <div className="border-b border-slate-100 p-5 bg-slate-50/50">
+            <h3 className="text-sm font-bold tracking-tight text-slate-800">Bulk Import Log</h3>
+            <p className="text-[10px] text-slate-400">
+              Successful imports: {bulkResult.created_count} | Skipped: {bulkResult.skipped_count}
             </p>
           </div>
 
-          <div className="grid gap-4 p-4 lg:grid-cols-2">
+          <div className="grid gap-6 p-5 lg:grid-cols-2">
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-emerald-700">Uploaded</h4>
-              <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700">Successfully Issued</h4>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-150 divide-y divide-slate-100">
                 {bulkResult.created.length ? (
                   bulkResult.created.map((item) => (
-                    <div key={`${item.student_id}-${item.file}`} className="flex items-center justify-between gap-3 border-b border-slate-100 p-3 text-sm last:border-b-0">
-                      <div>
-                        <p className="font-semibold text-slate-950">{item.student_id} - {item.student_name}</p>
-                        <p className="text-slate-500">{item.file}</p>
+                    <div key={`${item.student_id}-${item.file}`} className="flex items-center justify-between gap-3 p-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{item.file}</p>
                       </div>
-                      <a href={item.download_url} rel="noreferrer" className="rounded-lg bg-emerald-50 px-3 py-2 font-semibold text-emerald-700">
+                      <a href={item.download_url} className="rounded-lg bg-emerald-50 px-3 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100 transition">
                         Download
                       </a>
                     </div>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">No certificates uploaded.</p>
+                  <p className="p-4 text-xs font-semibold text-slate-400 text-center">No successful uploads.</p>
                 )}
               </div>
             </div>
 
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-red-700">Skipped</h4>
-              <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-red-700">Skipped (With Warnings)</h4>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-150 divide-y divide-slate-100">
                 {bulkResult.skipped.length ? (
                   bulkResult.skipped.map((item) => (
-                    <div key={`${item.file}-${item.reason}`} className="border-b border-slate-100 p-3 text-sm last:border-b-0">
-                      <p className="font-semibold text-slate-950">{item.file}</p>
-                      <p className="text-red-700">{item.reason}</p>
+                    <div key={`${item.file}-${item.reason}`} className="p-3 text-xs">
+                      <p className="font-bold text-slate-800 truncate">{item.file}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-red-650">{item.reason}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">Nothing skipped.</p>
+                  <p className="p-4 text-xs font-semibold text-slate-400 text-center">No warnings or skips.</p>
                 )}
               </div>
             </div>
@@ -506,50 +506,50 @@ if (fileInput) {
       )}
 
       {templateResult && (
-        <section className="mt-5 rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-950">Template Generation Result</h3>
-            <p className="text-sm text-slate-500">
-              {templateResult.created_count} generated successfully, {templateResult.skipped_count} skipped.
+        <section className="mt-8 rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden animate-fade-in-up">
+          <div className="border-b border-slate-100 p-5 bg-slate-50/50">
+            <h3 className="text-sm font-bold tracking-tight text-slate-800">Layout Rendering Log</h3>
+            <p className="text-[10px] text-slate-400">
+              Rendered files: {templateResult.created_count} | Skipped: {templateResult.skipped_count}
             </p>
           </div>
 
-          <div className="grid gap-4 p-4 lg:grid-cols-2">
+          <div className="grid gap-6 p-5 lg:grid-cols-2">
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-emerald-700">Generated</h4>
-              <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700">Generated Documents</h4>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-150 divide-y divide-slate-100">
                 {templateResult.created.length ? (
                   templateResult.created.map((item) => (
-                    <div key={`${item.student_id}-template`} className="flex items-center justify-between gap-3 border-b border-slate-100 p-3 text-sm last:border-b-0">
-                      <div>
-                        <p className="font-semibold text-slate-950">{item.student_id} - {item.student_name}</p>
-                        <a href={item.verification_url} target="_blank" rel="noreferrer" className="text-cyan-700 hover:underline">
-                          Verification Page
+                    <div key={`${item.student_id}-template`} className="flex items-center justify-between gap-3 p-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                        <a href={item.verification_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-primary-650 hover:underline">
+                          View Verification Page
                         </a>
                       </div>
-                      <a href={item.download_url} rel="noreferrer" className="rounded-lg bg-emerald-50 px-3 py-2 font-semibold text-emerald-700">
+                      <a href={item.download_url} className="rounded-lg bg-emerald-50 px-3 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100 transition">
                         Download
                       </a>
                     </div>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">No certificates generated.</p>
+                  <p className="p-4 text-xs font-semibold text-slate-400 text-center">No successful renders.</p>
                 )}
               </div>
             </div>
 
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-red-700">Skipped</h4>
-              <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-red-700">Skipped Profiles</h4>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-150 divide-y divide-slate-100">
                 {templateResult.skipped.length ? (
                   templateResult.skipped.map((item) => (
-                    <div key={`${item.student_id}-${item.reason}`} className="border-b border-slate-100 p-3 text-sm last:border-b-0">
-                      <p className="font-semibold text-slate-950">{item.student_id} - {item.student_name}</p>
-                      <p className="text-red-700">{item.reason}</p>
+                    <div key={`${item.student_id}-${item.reason}`} className="p-3 text-xs">
+                      <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-red-650">{item.reason}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">Nothing skipped.</p>
+                  <p className="p-4 text-xs font-semibold text-slate-400 text-center">No warnings or skips.</p>
                 )}
               </div>
             </div>
