@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 import api, { checkSession, formatApiError, getCsrfToken } from "../services/api";
 
 function AdminLogin() {
   const navigate = useNavigate();
+  useEffect(() => {
+    getCsrfToken();
+  }, []);
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,12 +18,14 @@ function AdminLogin() {
     setError("");
 
     try {
-      await getCsrfToken();
-      await api.post("/accounts/login/", {
-        role: "admin",
-        username: form.username,
-        password: form.password,
-      });
+      const response = await api.post(
+  "/accounts/login/",
+  {
+    username: form.username,
+    password: form.password,
+    role: "admin",
+  }
+);
 
       const session = await checkSession();
       if (!session.authenticated || session.role !== "admin") {
