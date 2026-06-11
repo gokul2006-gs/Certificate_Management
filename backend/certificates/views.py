@@ -41,12 +41,19 @@ def _absolute_media_url(request, file_field):
 
 
 def _latest_certificate(student_id):
-    return (
+    certificate = (
         Certificate.objects.select_related("student", "student__course")
         .filter(student__student_id=student_id)
         .order_by("-created_at")
         .first()
     )
+    if certificate and certificate.qr_code:
+        try:
+            if not certificate.qr_code.storage.exists(certificate.qr_code.name):
+                _generate_qr(certificate)
+        except Exception:
+            pass
+    return certificate
 
 
 def _is_allowed_file(file_name):
