@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Calendar, Download, ExternalLink, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
+import { Award, Calendar, ExternalLink, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
 
@@ -14,12 +14,8 @@ function StudentDashboard() {
 
     api
       .get(`/accounts/profile/${studentId}/`)
-      .then((response) => {
-        setStudent(response.data);
-      })
-      .catch((error) => {
-        setMessage(error.response?.data?.error || "Please login again");
-      });
+      .then((response) => setStudent(response.data))
+      .catch((error) => setMessage(error.response?.data?.error || "Please login again"));
 
     api
       .get(`/certificates/view/${studentId}/`)
@@ -33,27 +29,13 @@ function StudentDashboard() {
   if (!student) {
     return (
       <Layout role="student">
-        <PageHeader title="Loading Profile..." eyebrow="Student Dashboard" />
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start animate-pulse">
-          <div className="space-y-6">
-            <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-4 border border-white/60">
-              <div className="h-4 w-32 shimmer-bg rounded" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="h-20 shimmer-bg rounded-xl" />
-                <div className="h-20 shimmer-bg rounded-xl" />
-                <div className="h-20 shimmer-bg rounded-xl" />
-                <div className="h-20 shimmer-bg rounded-xl" />
-              </div>
-            </div>
-            <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-3 border border-white/60">
-              <div className="h-4 w-40 shimmer-bg rounded" />
-              <div className="h-8 w-full shimmer-bg rounded-lg" />
-            </div>
-          </div>
-          <div className="glass-panel rounded-2xl p-6 shadow-sm space-y-4 border border-white/60">
+        <PageHeader title="Loading Profile..." eyebrow="My Certificate" />
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] animate-pulse">
+          <div className="min-h-[420px] rounded-2xl border border-white/60 shimmer-bg" />
+          <div className="rounded-2xl border border-white/60 p-6">
             <div className="h-6 w-48 shimmer-bg rounded" />
-            <div className="mx-auto aspect-square w-full max-w-[240px] shimmer-bg rounded-2xl" />
-            <div className="h-10 w-full shimmer-bg rounded-xl" />
+            <div className="mx-auto mt-6 aspect-square w-full max-w-[240px] shimmer-bg rounded-2xl" />
+            <div className="mt-6 h-12 w-full shimmer-bg rounded-xl" />
           </div>
         </div>
       </Layout>
@@ -61,24 +43,79 @@ function StudentDashboard() {
   }
 
   const isValid = certificateStatus === "VALID";
+  const certificateAvailable = Boolean(certificate?.certificate_available && certificate?.certificate);
 
   return (
     <Layout role="student">
-      <PageHeader title={`Welcome, ${student.name}`} eyebrow="Student Dashboard" />
+      <PageHeader title={`Welcome, ${student.name}`} eyebrow="My Certificate" />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] items-start animate-fade-in-up">
+      {message && (
+        <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {message}
+        </div>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] items-start animate-fade-in-up">
         <div className="space-y-6">
-          {/* Profile Card */}
-          <div className="glass-panel rounded-2xl p-6 shadow-sm">
+          {certificate ? (
+            <section className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Official Certificate</p>
+                  <h3 className="mt-1 truncate text-lg font-extrabold text-slate-900">Certificate Preview</h3>
+                </div>
+                <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold ${isValid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                  {certificateStatus}
+                </span>
+              </div>
+
+              {certificateAvailable ? (
+                <div className="bg-slate-100 p-2">
+                  {isImageCertificate(certificate.certificate) ? (
+                    <img
+                      src={certificate.certificate}
+                      alt="Student certificate"
+                      className="mx-auto max-h-[68vh] w-full rounded-xl bg-white object-contain shadow-sm"
+                    />
+                  ) : (
+                    <iframe
+                      src={certificate.certificate}
+                      title="Student certificate"
+                      className="h-[68vh] min-h-[420px] w-full rounded-xl border-0 bg-white shadow-sm"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="grid min-h-[300px] place-items-center p-6 text-center">
+                  <div className="max-w-md">
+                    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                      <ShieldCheck size={24} />
+                    </div>
+                    <h3 className="text-lg font-extrabold text-slate-900">Certificate is valid</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      The certificate record exists, but the file is not available on the server. Ask the admin to upload or regenerate it.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <div className="rounded-2xl border border-amber-200/50 bg-amber-50 p-6 text-center">
+              <p className="text-sm font-semibold text-amber-800">
+                Your certificate has not been uploaded yet. Please check back later.
+              </p>
+            </div>
+          )}
+
+          <section className="glass-panel rounded-2xl p-6 shadow-sm">
             <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-500">Student Profile</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <InfoCard icon={IdCard} label="Student Identification" value={student.student_id} />
               <InfoCard icon={Mail} label="Contact Email" value={student.email} />
               <InfoCard icon={Award} label="Enrolled Specialization" value={student.course_name} />
-              <InfoCard 
-                icon={ShieldCheck} 
-                label="Certificate State" 
-                value={certificateStatus} 
+              <InfoCard
+                icon={ShieldCheck}
+                label="Certificate State"
                 customBadge={
                   <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${isValid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                     {certificateStatus}
@@ -86,30 +123,28 @@ function StudentDashboard() {
                 }
               />
             </div>
-          </div>
+          </section>
 
-          {/* Enrolled Course Details card */}
-          <div className="glass-panel rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
+          <section className="glass-panel rounded-2xl p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary-50 text-primary-600">
                 <Calendar size={18} />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Specialization details</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Specialization Details</h3>
             </div>
             <p className="text-base font-extrabold text-slate-800">{student.course_name}</p>
             <p className="mt-1 text-sm text-slate-500">Includes active certificate issuing, course modules, and QR validation.</p>
-          </div>
+          </section>
         </div>
 
-        {/* QR Code / Certificate widget */}
         <aside className="glass-panel rounded-2xl p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3.5">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600">
               <QrCode size={20} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Verification Access</h3>
-              <p className="text-xs text-slate-400">Scan to verify credentials</p>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Verification QR</h3>
+              <p className="text-xs text-slate-400">Scan to view certificate and details</p>
             </div>
           </div>
 
@@ -120,6 +155,7 @@ function StudentDashboard() {
                   ACTIVE & VALID
                 </span>
               </div>
+
               {certificate.qr && (
                 <a
                   href={certificate.verification_url}
@@ -134,7 +170,7 @@ function StudentDashboard() {
                   />
                 </a>
               )}
-              
+
               <div className="mt-6 space-y-3">
                 <a
                   href={certificate.verification_url}
@@ -145,31 +181,17 @@ function StudentDashboard() {
                   <ExternalLink size={14} />
                   Open Certificate
                 </a>
-                {certificate.certificate_available ? (
-                  <a
-                    href={certificate.download_url}
-                    download
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3.5 text-xs font-bold text-white hover:bg-slate-850 transition duration-200 shadow-md shadow-slate-950/10"
-                  >
-                    <Download size={14} />
-                    Download Credentials
-                  </a>
-                ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
-                    Certificate file is missing. Ask the admin to upload or regenerate it.
-                  </div>
-                )}
-                
+
                 <div className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
                   <ScanLine size={14} />
-                  Verified on official blockchain/database
+                  Scan QR to verify credentials
                 </div>
               </div>
             </div>
           ) : (
             <div className="rounded-xl bg-amber-50/50 border border-amber-200/30 p-5 text-center">
               <p className="text-sm font-medium text-amber-800">
-                Your certificate has not been uploaded yet. Please check back later.
+                Your certificate has not been uploaded yet.
               </p>
             </div>
           )}
@@ -181,7 +203,7 @@ function StudentDashboard() {
 
 function InfoCard({ icon: Icon, label, value, customBadge }) {
   return (
-    <div className="min-w-0 rounded-xl bg-slate-50/50 border border-slate-105 p-4 hover:bg-white hover:scale-[1.02] hover:shadow-md transition-all duration-300 ease-out">
+    <div className="min-w-0 rounded-xl bg-slate-50/50 border border-slate-100 p-4 transition-all duration-300 ease-out hover:bg-white hover:scale-[1.02] hover:shadow-md">
       <div className="mb-1.5 flex items-center gap-2 text-slate-400">
         <Icon className="shrink-0" size={15} />
         <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
@@ -189,10 +211,14 @@ function InfoCard({ icon: Icon, label, value, customBadge }) {
       {customBadge ? (
         <div className="mt-1">{customBadge}</div>
       ) : (
-        <p className="break-words font-extrabold text-slate-800">{value || "—"}</p>
+        <p className="break-words font-extrabold text-slate-800">{value || "-"}</p>
       )}
     </div>
   );
+}
+
+function isImageCertificate(url = "") {
+  return /\.(png|jpe?g)(\?|$)/i.test(url);
 }
 
 export default StudentDashboard;

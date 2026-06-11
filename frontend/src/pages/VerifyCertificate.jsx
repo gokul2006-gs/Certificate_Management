@@ -4,21 +4,18 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
-  Download,
   ExternalLink,
   GraduationCap,
   IdCard,
   ShieldCheck,
   User,
 } from "lucide-react";
-import api, { formatApiError } from "../services/api";
+import api from "../services/api";
 
 function VerifyCertificate() {
   const { studentId } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     api
@@ -43,34 +40,7 @@ function VerifyCertificate() {
 
   const valid = data?.valid;
   const certificateUrl = data?.certificate || "";
-  const downloadUrl = data?.download_url || certificateUrl;
   const certificateAvailable = Boolean(data?.certificate_available && certificateUrl);
-
-  const handleDownload = async () => {
-    if (!downloadUrl) return;
-
-    setDownloading(true);
-    setDownloadError("");
-
-    try {
-      const response = await api.get(downloadUrl, {
-        baseURL: "",
-        responseType: "blob",
-      });
-      const objectUrl = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = filenameFromDisposition(response.headers["content-disposition"], data?.student_id);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch (error) {
-      setDownloadError(await formatDownloadError(error));
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   return (
     <main className="min-h-screen bg-slate-50/30 px-3 py-4 sm:px-6 sm:py-10">
@@ -144,15 +114,6 @@ function VerifyCertificate() {
               </div>
 
               <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={downloading || !downloadUrl || !certificateAvailable}
-                  className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-slate-950/15 transition-all duration-300 hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Download className="shrink-0" size={16} />
-                  <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
-                </button>
                 {certificateAvailable && (
                   <a
                     href={certificateUrl}
@@ -163,11 +124,6 @@ function VerifyCertificate() {
                     <ExternalLink className="shrink-0" size={16} />
                     <span>Open Original File</span>
                   </a>
-                )}
-                {downloadError && (
-                  <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                    {downloadError}
-                  </p>
                 )}
               </div>
             </aside>
@@ -196,25 +152,6 @@ function formatDate(value) {
     month: "long",
     day: "2-digit",
   });
-}
-
-function filenameFromDisposition(disposition = "", studentId = "certificate") {
-  const match = disposition.match(/filename="?([^";]+)"?/i);
-  return match?.[1] || `${studentId || "certificate"}-certificate`;
-}
-
-async function formatDownloadError(error) {
-  const data = error?.response?.data;
-  if (data instanceof Blob) {
-    try {
-      const text = await data.text();
-      const parsed = JSON.parse(text);
-      return parsed.error || parsed.detail || "Download failed. Please try again.";
-    } catch {
-      return "Download failed. Please try again.";
-    }
-  }
-  return formatApiError(error, "Download failed. Please try again.");
 }
 
 function VerifyField({ icon: Icon, label, value }) {
