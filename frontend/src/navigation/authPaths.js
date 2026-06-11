@@ -10,6 +10,7 @@ export function isPublicPath(pathname) {
   return (
     pathname === "/" ||
     pathname === "/admin" ||
-    /^\/verify\/[^/]+$/.test(pathname)
+    /^\/verify\/[^/]+$/.test(pathname) ||
+    /^\/api\/certificates\/download\/[^/]+\/?$/.test(pathname)
   );
 }

@@ -10,6 +10,7 @@ PUBLIC_API_PATTERNS = (
     re.compile(r"^/api/accounts/login/?$"),
     re.compile(r"^/api/accounts/logout/?$"),
     re.compile(r"^/api/certificates/verify/[^/]+/?$"),
+    re.compile(r"^/api/certificates/download/[^/]+/?$"),
 )
 
 ADMIN_API_PREFIXES = (

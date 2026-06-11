@@ -4,7 +4,7 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
-  ExternalLink,
+  Download,
   GraduationCap,
   IdCard,
   ShieldCheck,
@@ -40,6 +40,7 @@ function VerifyCertificate() {
 
   const valid = data?.valid;
   const certificateUrl = data?.certificate || "";
+  const downloadUrl = data?.download_url || "";
   const certificateAvailable = Boolean(data?.certificate_available && certificateUrl);
 
   return (
@@ -113,19 +114,15 @@ function VerifyCertificate() {
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                {certificateAvailable && (
-                  <a
-                    href={certificateUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <ExternalLink className="shrink-0" size={16} />
-                    <span>Open Original File</span>
-                  </a>
-                )}
-              </div>
+              {certificateAvailable && downloadUrl && (
+                <a
+                  href={downloadUrl}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-4 py-3.5 text-center text-sm font-bold text-white shadow-md shadow-slate-950/10 transition-all duration-300 hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Download className="shrink-0" size={16} />
+                  <span>Download Certificate</span>
+                </a>
+              )}
             </aside>
           </div>
         ) : (
