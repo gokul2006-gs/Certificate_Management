@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Calendar, ExternalLink, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
+import { Award, Calendar, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
 import AuthService from "../navigation/AuthService";
@@ -35,20 +35,18 @@ function StudentDashboard() {
     return (
       <Layout role="student">
         <PageHeader title="Loading Profile..." eyebrow="My Certificate" />
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] animate-pulse">
-          <div className="min-h-[420px] rounded-2xl border border-white/60 shimmer-bg" />
-          <div className="rounded-2xl border border-white/60 p-6">
-            <div className="h-6 w-48 shimmer-bg rounded" />
-            <div className="mx-auto mt-6 aspect-square w-full max-w-[240px] shimmer-bg rounded-2xl" />
-            <div className="mt-6 h-12 w-full shimmer-bg rounded-xl" />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] animate-pulse">
+          <div className="space-y-6">
+            <div className="h-48 rounded-2xl border border-white/60 shimmer-bg" />
+            <div className="h-36 rounded-2xl border border-white/60 shimmer-bg" />
           </div>
+          <div className="h-80 rounded-2xl border border-white/60 shimmer-bg" />
         </div>
       </Layout>
     );
   }
 
   const isValid = certificateStatus === "VALID";
-  const certificateAvailable = Boolean(certificate?.certificate_available && certificate?.certificate);
 
   return (
     <Layout role="student">
@@ -60,58 +58,8 @@ function StudentDashboard() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] items-start animate-fade-in-up">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] items-start animate-fade-in-up">
         <div className="space-y-6">
-          {certificate ? (
-            <section className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Official Certificate</p>
-                  <h3 className="mt-1 truncate text-lg font-extrabold text-slate-900">Certificate Preview</h3>
-                </div>
-                <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold ${isValid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                  {certificateStatus}
-                </span>
-              </div>
-
-              {certificateAvailable ? (
-                <div className="bg-slate-100 p-2">
-                  {isImageCertificate(certificate.certificate) ? (
-                    <img
-                      src={certificate.certificate}
-                      alt="Student certificate"
-                      className="mx-auto max-h-[68vh] w-full rounded-xl bg-white object-contain shadow-sm"
-                    />
-                  ) : (
-                    <iframe
-                      src={certificate.certificate}
-                      title="Student certificate"
-                      className="h-[68vh] min-h-[420px] w-full rounded-xl border-0 bg-white shadow-sm"
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="grid min-h-[300px] place-items-center p-6 text-center">
-                  <div className="max-w-md">
-                    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-amber-100 text-amber-700">
-                      <ShieldCheck size={24} />
-                    </div>
-                    <h3 className="text-lg font-extrabold text-slate-900">Certificate is valid</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                      The certificate record exists, but the file is not available on the server. Ask the admin to upload or regenerate it.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : (
-            <div className="rounded-2xl border border-amber-200/50 bg-amber-50 p-6 text-center">
-              <p className="text-sm font-semibold text-amber-800">
-                Your certificate has not been uploaded yet. Please check back later.
-              </p>
-            </div>
-          )}
-
           <section className="glass-panel rounded-2xl p-6 shadow-sm">
             <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-500">Student Profile</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -176,21 +124,9 @@ function StudentDashboard() {
                 </a>
               )}
 
-              <div className="mt-6 space-y-3">
-                <a
-                  href={certificate.verification_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-xs font-bold text-slate-700 transition duration-200 hover:bg-slate-50"
-                >
-                  <ExternalLink size={14} />
-                  Open Certificate
-                </a>
-
-                <div className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
-                  <ScanLine size={14} />
-                  Scan QR to verify credentials
-                </div>
+              <div className="mt-6 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
+                <ScanLine size={14} />
+                Scan QR to verify credentials
               </div>
             </div>
           ) : (
@@ -220,10 +156,6 @@ function InfoCard({ icon: Icon, label, value, customBadge }) {
       )}
     </div>
   );
-}
-
-function isImageCertificate(url = "") {
-  return /\.(png|jpe?g)(\?|$)/i.test(url);
 }
 
 export default StudentDashboard;
