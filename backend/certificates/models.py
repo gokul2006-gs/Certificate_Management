@@ -13,19 +13,10 @@ class Certificate(models.Model):
         related_name="certificates"
     )
 
-    certificate_file = models.FileField(
-        upload_to="certificates/"
-    )
-
-    qr_code = models.FileField(
-        upload_to="qrcodes/",
-        blank=True,
-        null=True
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    certificate_file = models.FileField(upload_to="certificates/")
+    qr_code = models.FileField(upload_to="qrcodes/", blank=True, null=True)
+    course_name = models.CharField(max_length=200, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.student.name
@@ -51,6 +42,8 @@ class CertificateGenerationJob(models.Model):
     template_file = models.FileField(upload_to="certificate_templates/")
     issue_date = models.CharField(max_length=10)
     student_ids = models.JSONField(default=list)
+    fields = models.JSONField(default=dict, blank=True)
+    course_name = models.CharField(max_length=200, blank=True, default="")
     processed_count = models.PositiveIntegerField(default=0)
     created_count = models.PositiveIntegerField(default=0)
     skipped_count = models.PositiveIntegerField(default=0)

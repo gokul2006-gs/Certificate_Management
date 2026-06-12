@@ -123,7 +123,7 @@ def login_view(request):
         )
 
     try:
-        student = Student.objects.get(student_id=student_id)
+        student = Student.objects.get(student_id__iexact=student_id)
     except Student.DoesNotExist:
         return Response(
             {"error": "Student not found"},
@@ -181,7 +181,7 @@ def session_view(request):
 
     if role == "student":
         student_id = request.session.get("student_id")
-        if not student_id or not Student.objects.filter(student_id=student_id).exists():
+        if not student_id or not Student.objects.filter(student_id__iexact=student_id).exists():
             request.session.flush()
             return Response({
                 "authenticated": False,
@@ -280,50 +280,39 @@ def upload_excel(request):
 
     headers = [str(value).strip() if value is not None else "" for value in rows[0]]
     header_map = {header.lower(): index for index, header in enumerate(headers)}
+
+    # Normalize alternative email column names to "email"
+    EMAIL_ALIASES = ["e-mail id", "e-mial id", "e-mail", "email id", "emailid", "mail", "e mail id", "email address"]
+    if "email" not in header_map:
+        for alias in EMAIL_ALIASES:
+            if alias in header_map:
+                header_map["email"] = header_map[alias]
+                break
+        # last resort: find any key containing "mail" or "email"
+        if "email" not in header_map:
+            for key in header_map.keys():
+                if "mail" in key or "email" in key:
+                    header_map["email"] = header_map[key]
+                    break
+
+    # Normalize alternative student ID column names to "student_id"
+    STUDENT_ID_ALIASES = ["reg no", "reg. no", "reg no.", "registration no", "registration number", "regno"]
+    if "student_id" not in header_map:
+        for alias in STUDENT_ID_ALIASES:
+            if alias in header_map:
+                header_map["student_id"] = header_map[alias]
+                break
+
     if "name" not in header_map or "email" not in header_map:
         return Response(
-            {"error": "Excel file must contain Name and Email columns"},
+            {"error": f"Excel file must contain Name and Email columns. Found columns: {list(headers)}"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    default_course = _ensure_course()
     created = []
     updated = []
     skipped = []
     warnings = []
-
-    # Optional Excel columns:
-    # - `course` / `course_name` (preferred): which course the student registered for
-    # - `duration`: optional duration used when creating a new course
-    course_key = None
-    for key in ["course", "course_name", "registered_course", "registered_courses"]:
-        if key in header_map:
-            course_key = key
-            break
-    # Fallback: if Excel uses a slightly different header (e.g. "Registered Courses"),
-    # pick the first column that contains "course".
-    if course_key is None:
-        for key in header_map.keys():
-            if "course" in key:
-                course_key = key
-                break
-    duration_key = "duration" if "duration" in header_map else None
-
-    def _normalize_course_name(raw):
-        """
-        Convert Excel cell to a course name.
-
-        IMPORTANT: Keep the full text as-is (trim + collapse whitespace).
-        Previously we split by separators which could truncate valid course names.
-        """
-        if raw is None:
-            return ""
-        text = str(raw).strip()
-        if not text:
-            return ""
-        # Normalize newlines to spaces and collapse repeated whitespace.
-        text = re.sub(r"\s+", " ", text)
-        return text
 
     # Optional student_id column (if Excel provides it).
     student_id_key = None
@@ -346,56 +335,22 @@ def upload_excel(request):
             skipped.append({"email": email, "reason": "Missing name or email"})
             continue
 
-        raw_course_value = ""
-        if course_key and header_map[course_key] < len(row):
-            raw_course_value = row[header_map[course_key]]
-
-        selected_course_name = _normalize_course_name(raw_course_value)
-        if not selected_course_name:
-            selected_course_name = default_course.course_name
-            if course_key:
-                warnings.append({"email": email, "warning": "Course missing; using default course"})
-
-        raw_duration_value = None
-        if duration_key and header_map[duration_key] < len(row):
-            raw_duration_value = row[header_map[duration_key]]
-        selected_duration = (
-            str(raw_duration_value).strip()
-            if raw_duration_value is not None and str(raw_duration_value).strip()
-            else None
-        )
-
-        course_obj, _ = Course.objects.get_or_create(
-            course_name=selected_course_name,
-            defaults={"duration": selected_duration or default_course.duration},
-        )
-        if selected_duration and course_obj.duration != selected_duration:
-            course_obj.duration = selected_duration
-            course_obj.save(update_fields=["duration"])
-
         existing = Student.objects.filter(email=email).first()
         if existing:
             student_id_changed = False
             existing.name = name or existing.name
-            existing.course = course_obj
             if student_id_key and header_map[student_id_key] < len(row):
                 desired_student_id = str(row[header_map[student_id_key]] or "").strip()
                 if desired_student_id and desired_student_id != existing.student_id:
-                    # Avoid breaking uniqueness; only set if it's free.
                     if not Student.objects.filter(student_id=desired_student_id).exists():
                         existing.student_id = desired_student_id
                         student_id_changed = True
                     else:
-                        warnings.append(
-                            {
-                                "email": email,
-                                "warning": f"student_id '{desired_student_id}' already exists; keeping existing id",
-                            }
-                        )
+                        warnings.append({"email": email, "warning": f"student_id '{desired_student_id}' already exists; keeping existing id"})
             if student_id_changed:
-                existing.save(update_fields=["name", "course", "student_id"])
+                existing.save(update_fields=["name", "student_id"])
             else:
-                existing.save(update_fields=["name", "course"])
+                existing.save(update_fields=["name"])
             updated.append(existing.student_id)
             continue
 
@@ -406,22 +361,15 @@ def upload_excel(request):
                 desired_student_id = None
 
         if desired_student_id and Student.objects.filter(student_id=desired_student_id).exists():
-            warnings.append(
-                {
-                    "email": email,
-                    "warning": f"student_id '{desired_student_id}' already exists; generating new id",
-                }
-            )
+            warnings.append({"email": email, "warning": f"student_id '{desired_student_id}' already exists; generating new id"})
             desired_student_id = None
 
         final_student_id = desired_student_id or _next_student_id()
-
         student = Student.objects.create(
             student_id=final_student_id,
             name=name,
             email=email,
             password=DEFAULT_PASSWORD,
-            course=course_obj,
         )
         created.append(student.student_id)
 
@@ -441,46 +389,12 @@ def upload_excel(request):
 @admin_required
 def students(request):
     if request.method == "GET":
-        student_rows = Student.objects.select_related("course").order_by("student_id")
+        student_rows = Student.objects.order_by("student_id")
         return Response(StudentSerializer(student_rows, many=True).data)
 
     data = request.data.copy()
     data.setdefault("student_id", _next_student_id())
     data.setdefault("password", DEFAULT_PASSWORD)
-
-    course_input = data.get("course")
-    duration_input = data.get("duration")
-
-    if course_input:
-        from bson import ObjectId
-        from bson.errors import InvalidId
-        course_obj = None
-        try:
-            course_id = ObjectId(course_input)
-            course_obj = Course.objects.filter(id=course_id).first()
-        except (InvalidId, TypeError, ValueError):
-            pass
-
-        if not course_obj:
-            course_name = str(course_input).strip()
-            if course_name:
-                course_obj, _ = Course.objects.get_or_create(
-                    course_name=course_name,
-                    defaults={"duration": duration_input or "3 Months"}
-                )
-                if duration_input and course_obj.duration != duration_input:
-                    course_obj.duration = duration_input
-                    course_obj.save(update_fields=["duration"])
-            else:
-                course_obj = _ensure_course()
-        else:
-            if duration_input and course_obj.duration != duration_input:
-                course_obj.duration = duration_input
-                course_obj.save(update_fields=["duration"])
-
-        data["course"] = str(course_obj.id)
-    else:
-        data["course"] = str(_ensure_course().id)
 
     serializer = StudentSerializer(data=data)
     if serializer.is_valid():
@@ -494,14 +408,17 @@ def students(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 def student_detail(request, student_id):
+    # Normalize student_id
+    student_id = student_id.strip()
+    
     try:
-        student = Student.objects.get(student_id=student_id)
+        student = Student.objects.get(student_id__iexact=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
         session_student_id = request.session.get("student_id")
-        if not is_admin(request) and session_student_id != student_id:
+        if not is_admin(request) and session_student_id != student.student_id:
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
         return Response(StudentSerializer(student).data)
 
@@ -512,11 +429,12 @@ def student_detail(request, student_id):
         student.delete()
         return Response({"message": "Student deleted"})
 
-    serializer = StudentSerializer(student, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == "PUT":
+        serializer = StudentSerializer(student, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["POST"])
@@ -542,14 +460,17 @@ def bulk_delete_students(request):
 
 @api_view(["GET"])
 def student_profile(request, student_id):
+    # Normalize student_id
+    student_id = student_id.strip()
+    
     try:
-        student = Student.objects.get(student_id=student_id)
+        student = Student.objects.get(student_id__iexact=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if not is_admin(request):
         session_student_id = request.session.get("student_id")
-        if not is_student(request) or session_student_id != student_id:
+        if not is_student(request) or session_student_id != student.student_id:
             return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
     return Response(StudentSerializer(student).data)

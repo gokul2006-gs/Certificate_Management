@@ -13,7 +13,7 @@ JOB_BATCH_SIZE = 3
 MAX_SKIPPED_DETAILS = 200
 
 
-def generate_for_students(template_file, issue_date, students, request):
+def generate_for_students(template_file, issue_date, students, request, fields=None, course_name=None):
     from .views import (
         _absolute_media_url,
         _create_certificate,
@@ -27,11 +27,14 @@ def generate_for_students(template_file, issue_date, students, request):
     for student in students:
         try:
             template_file.seek(0)
-            generated_file = _generated_certificate_file(student, template_file, issue_date)
+            generated_file = _generated_certificate_file(
+                student, template_file, issue_date, fields=fields, course_name=course_name
+            )
             certificate, verification_url = _create_certificate(
                 student,
                 generated_file,
                 generated_file.name,
+                course_name=course_name or "",
             )
             created.append({
                 "student_id": student.student_id,
@@ -78,7 +81,7 @@ def process_generation_job_batch(job, request, batch_size=JOB_BATCH_SIZE):
     job.save(update_fields=["status", "updated_at"])
 
     batch_ids = job.student_ids[job.processed_count:job.processed_count + batch_size]
-    students = Student.objects.filter(student_id__in=batch_ids).select_related("course")
+    students = Student.objects.filter(student_id__in=batch_ids)
     student_map = {student.student_id: student for student in students}
 
     ordered_students = []
@@ -107,6 +110,8 @@ def process_generation_job_batch(job, request, batch_size=JOB_BATCH_SIZE):
                 job.issue_date,
                 ordered_students,
                 request,
+                fields=job.fields or None,
+                course_name=job.course_name or None,
             )
             recent_created.extend(batch_created)
             recent_skipped.extend(batch_skipped)

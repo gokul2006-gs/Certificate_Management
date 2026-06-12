@@ -42,9 +42,10 @@ def _verification_url(student_id):
 
 
 def _latest_certificate(student_id):
+    # Use case-insensitive lookup to handle any case variations
     certificate = (
-        Certificate.objects.select_related("student", "student__course")
-        .filter(student__student_id=student_id)
+        Certificate.objects.select_related("student")
+        .filter(student__student_id__iexact=student_id)
         .order_by("-created_at")
         .first()
     )
@@ -80,10 +81,11 @@ def _generate_qr(certificate):
     return verification_url
 
 
-def _create_certificate(student, certificate_file, file_name=None):
-    certificate = Certificate(student=student)
+def _create_certificate(student, certificate_file, file_name=None, course_name=""):
+    certificate = Certificate(student=student, course_name=course_name or "")
+    safe_name = (file_name or certificate_file.name).replace("\\", "/")
     certificate.certificate_file.save(
-        file_name or certificate_file.name,
+        safe_name,
         certificate_file,
         save=True,
     )
@@ -93,39 +95,95 @@ def _create_certificate(student, certificate_file, file_name=None):
 
 _WORKING_FONT_PATH = {True: None, False: None}
 
+# Font style caches
+_SCRIPT_FONT_PATH = None
+_SERIF_FONT_PATH = None
+_SERIF_BOLD_FONT_PATH = None
+
+
+def _resolve_font(candidates):
+    """Try each path and return the first that loads."""
+    from PIL import ImageFont
+    for path in candidates:
+        try:
+            ImageFont.truetype(path, 12)
+            return path
+        except OSError:
+            continue
+    return None
+
+
+@functools.lru_cache(maxsize=512)
+def _load_script_font(size):
+    """Script/cursive font matching the certificate name & course style."""
+    global _SCRIPT_FONT_PATH
+    from PIL import ImageFont
+    if _SCRIPT_FONT_PATH is None:
+        _SCRIPT_FONT_PATH = _resolve_font([
+            # Windows — prefer Kunstler Script (closest to certificate)
+            "C:/Windows/Fonts/KUNSTLER.TTF",
+            "C:/Windows/Fonts/MTCORSVA.TTF",   # Monotype Corsiva
+            "C:/Windows/Fonts/VLADIMIR.TTF",
+            "C:/Windows/Fonts/VIVALDII.TTF",
+            "C:/Windows/Fonts/PRISTINA.TTF",
+            "C:/Windows/Fonts/FREESCPT.TTF",
+            "C:/Windows/Fonts/FRSCRIPT.TTF",
+            # Linux
+            "/usr/share/fonts/truetype/urw/URWChanceryL-MediItal.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerifCondensed-Italic.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+        ])
+    if _SCRIPT_FONT_PATH:
+        try:
+            return ImageFont.truetype(_SCRIPT_FONT_PATH, size)
+        except OSError:
+            _SCRIPT_FONT_PATH = None
+    return ImageFont.load_default()
+
+
+@functools.lru_cache(maxsize=512)
+def _load_serif_font(size, bold=False):
+    """Serif font for body text on the certificate."""
+    global _SERIF_FONT_PATH, _SERIF_BOLD_FONT_PATH
+    from PIL import ImageFont
+    cache_attr = "_SERIF_BOLD_FONT_PATH" if bold else "_SERIF_FONT_PATH"
+    cached = _SERIF_BOLD_FONT_PATH if bold else _SERIF_FONT_PATH
+    if cached is None:
+        candidates = (
+            [
+                "C:/Windows/Fonts/timesbd.ttf",
+                "C:/Windows/Fonts/GARA.TTF",
+                "C:/Windows/Fonts/GARABD.TTF",
+                "C:/Windows/Fonts/georgia.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+            ]
+            if bold else
+            [
+                "C:/Windows/Fonts/times.ttf",
+                "C:/Windows/Fonts/GARA.TTF",
+                "C:/Windows/Fonts/georgia.ttf",
+                "C:/Windows/Fonts/BKANT.TTF",
+                "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+            ]
+        )
+        resolved = _resolve_font(candidates)
+        if bold:
+            _SERIF_BOLD_FONT_PATH = resolved
+            cached = resolved
+        else:
+            _SERIF_FONT_PATH = resolved
+            cached = resolved
+    if cached:
+        try:
+            return ImageFont.truetype(cached, size)
+        except OSError:
+            pass
+    return ImageFont.load_default()
+
 
 @functools.lru_cache(maxsize=256)
 def _load_font(size, bold=False):
-    from PIL import ImageFont
-    global _WORKING_FONT_PATH
-
-    # Try cached working path first
-    cached_path = _WORKING_FONT_PATH[bold]
-    if cached_path:
-        try:
-            return ImageFont.truetype(cached_path, size)
-        except OSError:
-            _WORKING_FONT_PATH[bold] = None
-
-    candidates = [
-        "arialbd.ttf" if bold else "arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if bold
-        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-        if bold
-        else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
-        "C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf",
-    ]
-    for font_path in candidates:
-        try:
-            font = ImageFont.truetype(font_path, size)
-            _WORKING_FONT_PATH[bold] = font_path
-            return font
-        except OSError:
-            continue
-    return ImageFont.load_default()
+    return _load_serif_font(size, bold=bold)
 
 
 def _draw_centered(draw, text, y, font, image_width, color):
@@ -134,29 +192,26 @@ def _draw_centered(draw, text, y, font, image_width, color):
     draw.text((x, y), text, font=font, fill=color)
 
 
-def _fit_font(text, max_width, start_size, min_size=16, bold=False):
+def _fit_font(text, max_width, start_size, min_size=16, bold=False, font_loader=None):
+    if font_loader is None:
+        font_loader = lambda s: _load_font(s, bold=bold)
     max_k = (start_size - min_size) // 2
     if max_k < 0:
-        return _load_font(min_size, bold=bold)
-
-    low = 0
-    high = max_k
-    best_k = None
-
+        return font_loader(min_size)
+    low, high, best_k = 0, max_k, None
     while low <= high:
         mid = (low + high) // 2
         size = start_size - 2 * mid
-        font = _load_font(size, bold=bold)
+        font = font_loader(size)
         left, top, right, bottom = font.getbbox(text)
         if right - left <= max_width:
             best_k = mid
-            high = mid - 1  # We want the LARGEST size (smallest k)
+            high = mid - 1
         else:
-            low = mid + 1   # Need smaller size (larger k)
-
+            low = mid + 1
     if best_k is None:
-        return _load_font(min_size, bold=bold)
-    return _load_font(start_size - 2 * best_k, bold=bold)
+        return font_loader(min_size)
+    return font_loader(start_size - 2 * best_k)
 
 
 def _wrap_text(text, font, max_width, draw):
@@ -194,10 +249,12 @@ def _wrap_text(text, font, max_width, draw):
     return lines
 
 
-def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=16):
+def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=16, font_loader=None):
+    if font_loader is None:
+        font_loader = lambda s: _load_font(s, bold=bold)
     left, top, right, bottom = box
     text = str(text or "").strip()
-    font = _fit_font(text, right - left, start_size, min_size=min_size, bold=bold)
+    font = _fit_font(text, right - left, start_size, min_size=min_size, font_loader=font_loader)
     lines = _wrap_text(text, font, right - left, draw)
     line_spacing = max(2, int(font.size * 0.15)) if hasattr(font, "size") else 4
 
@@ -222,24 +279,24 @@ def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=
         while low <= high:
             mid = (low + high) // 2
             size = current_size - 2 * mid
-            test_font = _load_font(size, bold=bold)
+            test_font = font_loader(size)
             test_lines = _wrap_text(text, test_font, right - left, draw)
             test_spacing = max(2, int(test_font.size * 0.15))
             test_height = measured_total_height(test_lines, test_font, test_spacing)
 
             if test_height <= (bottom - top):
                 best_k = mid
-                high = mid - 1  # Try to find a larger size (smaller k)
+                high = mid - 1
             else:
-                low = mid + 1   # Try to find a smaller size (larger k)
+                low = mid + 1
 
         if best_k is not None:
-            font = _load_font(current_size - 2 * best_k, bold=bold)
+            font = font_loader(current_size - 2 * best_k)
             lines = _wrap_text(text, font, right - left, draw)
             line_spacing = max(2, int(font.size * 0.15))
             total_height = measured_total_height(lines, font, line_spacing)
         else:
-            font = _load_font(min_size, bold=bold)
+            font = font_loader(min_size)
             lines = _wrap_text(text, font, right - left, draw)
             line_spacing = max(2, int(font.size * 0.15))
             total_height = measured_total_height(lines, font, line_spacing)
@@ -254,7 +311,7 @@ def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=
         y += line_height + line_spacing
 
 
-def _generated_certificate_file(student, template_file, issue_date):
+def _generated_certificate_file(student, template_file, issue_date, fields=None, course_name=None):
     from PIL import Image, ImageDraw
 
     template = Image.open(template_file).convert("RGB")
@@ -266,86 +323,86 @@ def _generated_certificate_file(student, template_file, issue_date):
     muted_color = (61, 75, 99)
     accent_color = (227, 126, 26)
 
-    # Positioning is tuned for the Tech S-Cube internship certificate template.
+    def box(fx1, fy1, fx2, fy2):
+        return (int(width * fx1), int(height * fy1), int(width * fx2), int(height * fy2))
+
+    def _field(key):
+        if not fields or key not in fields:
+            return None
+        f = fields[key]
+        return (
+            int(width * f["x1"] / 100),
+            int(height * f["y1"] / 100),
+            int(width * f["x2"] / 100),
+            int(height * f["y2"] / 100),
+        )
+
+    # course_name is passed explicitly at generation time by the admin
+    display_course = course_name or ""
+
+    # --- student name  (large script, matching certificate style) ---
+    name_box = _field("name") or box(0.250, 0.390, 0.830, 0.490)
     _draw_box_centered(
-        draw,
-        student.name.upper(),
-        (
-            int(width * 0.250),
-            int(height * 0.430),
-            int(width * 0.830),
-            int(height * 0.488),
-        ),
-        max(36, int(width * 0.036)),
-        text_color,
-        bold=True,
-        min_size=max(20, int(width * 0.018)),
+        draw, student.name,
+        name_box,
+        max(60, int(width * 0.058)), text_color,
+        font_loader=_load_script_font,
+        min_size=max(30, int(width * 0.025)),
     )
 
+    # --- course / project title  (large script) ---
+    course_box = _field("course") or box(0.200, 0.560, 0.860, 0.660)
     _draw_box_centered(
-        draw,
-        f"ID: {student.student_id}",
-        (
-            int(width * 0.410),
-            int(height * 0.500),
-            int(width * 0.720),
-            int(height * 0.528),
-        ),
-        max(16, int(width * 0.015)),
-        muted_color,
-        min_size=max(12, int(width * 0.012)),
+        draw, display_course,
+        course_box,
+        max(54, int(width * 0.052)), text_color,
+        font_loader=_load_script_font,
+        min_size=max(26, int(width * 0.022)),
     )
 
-    course_name = student.course.course_name if student.course else "Internship Training"
+    # --- issue date  (serif regular) ---
+    date_box = _field("issue_date") or box(0.250, 0.720, 0.780, 0.760)
     _draw_box_centered(
-        draw,
-        course_name.upper(),
-        (
-            int(width * 0.295),
-            int(height * 0.778),
-            int(width * 0.545),
-            int(height * 0.835),
-        ),
-        max(18, int(width * 0.017)),
-        text_color,
-        bold=True,
-        min_size=max(11, int(width * 0.009)),
+        draw, issue_date,
+        date_box,
+        max(18, int(width * 0.016)), muted_color,
+        font_loader=lambda s: _load_serif_font(s, bold=False),
+        min_size=max(12, int(width * 0.011)),
     )
 
+    # --- student id  (serif regular, small) ---
+    id_box = _field("student_id") or box(0.340, 0.760, 0.680, 0.792)
     _draw_box_centered(
-        draw,
-        issue_date,
-        (
-            int(width * 0.595),
-            int(height * 0.778),
-            int(width * 0.775),
-            int(height * 0.835),
-        ),
-        max(18, int(width * 0.017)),
-        text_color,
-        bold=True,
-        min_size=max(11, int(width * 0.009)),
+        draw, f"ID: {student.student_id}",
+        id_box,
+        max(15, int(width * 0.014)), muted_color,
+        font_loader=lambda s: _load_serif_font(s, bold=False),
+        min_size=max(11, int(width * 0.010)),
     )
 
+    # --- duration  (serif regular, small) ---
+    duration_box = _field("duration") or box(0.300, 0.792, 0.700, 0.825)
     _draw_box_centered(
-        draw,
-        getattr(student.course, "duration", "") or "Internship",
-        (
-            int(width * 0.335),
-            int(height * 0.868),
-            int(width * 0.535),
-            int(height * 0.912),
-        ),
-        max(16, int(width * 0.014)),
-        muted_color,
+        draw, "",
+        duration_box,
+        max(15, int(width * 0.013)), muted_color,
+        font_loader=lambda s: _load_serif_font(s, bold=False),
         min_size=max(10, int(width * 0.009)),
     )
 
+    # --- QR code ---
+    if fields and "qr" in fields:
+        f = fields["qr"]
+        qr_x = int(width * f["x1"] / 100)
+        qr_y = int(height * f["y1"] / 100)
+        qr_size = int(width * (f["x2"] - f["x1"]) / 100)
+    else:
+        qr_size = max(115, int(min(width, height) * 0.12))
+        qr_x = width - qr_size - int(width * 0.055)
+        qr_y = height - qr_size - int(height * 0.055)
+
     qr_image = qrcode.make(verification_url).convert("RGB")
-    qr_size = max(115, int(min(width, height) * 0.12))
     qr_image = qr_image.resize((qr_size, qr_size))
-    qr_x = width - qr_size - int(width * 0.055)
-    qr_y = height - qr_size - int(height * 0.055)
     template.paste(qr_image, (qr_x, qr_y))
     draw.rectangle(
         [qr_x - 6, qr_y - 6, qr_x + qr_size + 6, qr_y + qr_size + 6],
@@ -375,14 +432,13 @@ def _file_available(file_field):
 
 
 def _certificate_response(request, certificate):
-    course = certificate.student.course
     certificate_available = _file_available(certificate.certificate_file)
     return {
         "valid": True,
         "status": "VALID",
         "student_id": certificate.student.student_id,
         "student_name": certificate.student.name,
-        "course_name": course.course_name if course else "",
+        "course_name": certificate.course_name or "",
         "certificate_status": "VALID",
         "issue_date": certificate.created_at.date(),
         "certificate": _absolute_media_url(request, certificate.certificate_file)
@@ -416,18 +472,31 @@ def upload_certificate(request):
         )
 
     try:
-        student = Student.objects.select_related("course").get(student_id=student_id)
+        student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
     issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+    course_name = request.data.get("course_name", "").strip()
+
+    import json
+    fields_raw = request.data.get("fields")
+    fields = None
+    if fields_raw:
+        try:
+            fields = json.loads(fields_raw)
+        except (ValueError, TypeError):
+            fields = None
 
     try:
-        generated_file = _generated_certificate_file(student, certificate_file, issue_date)
+        generated_file = _generated_certificate_file(
+            student, certificate_file, issue_date, fields=fields, course_name=course_name
+        )
         certificate, verification_url = _create_certificate(
             student,
             generated_file,
             generated_file.name,
+            course_name=course_name,
         )
     except Exception as exc:
         return Response(
@@ -553,7 +622,7 @@ def generate_certificates_from_template(request):
 
     issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
     student_ids = [value.strip() for value in request.data.getlist("student_ids") if value.strip()]
-    students = Student.objects.select_related("course").order_by("student_id")
+    students = Student.objects.order_by("student_id")
     if student_ids:
         students = students.filter(student_id__in=student_ids)
 
@@ -591,20 +660,36 @@ def create_generation_job(request):
         )
 
     issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
-    student_ids = [value.strip() for value in request.data.getlist("student_ids") if value.strip()]
-    if not student_ids:
-        student_ids = list(
-            Student.objects.order_by("student_id").values_list("student_id", flat=True)
-        )
+
+    # All students — course is chosen at generation time, not stored on student
+    student_ids_input = [v.strip() for v in request.data.getlist("student_ids") if v.strip()]
+    if student_ids_input:
+        student_ids = student_ids_input
+    else:
+        student_ids = list(Student.objects.order_by("student_id").values_list("student_id", flat=True))
 
     if not student_ids:
-        return Response({"error": "No students found to generate certificates for"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "No students registered yet."}, status=status.HTTP_400_BAD_REQUEST)
+
+    import json
+    fields_raw = request.data.get("fields")
+    fields = None
+    if fields_raw:
+        try:
+            fields = json.loads(fields_raw)
+        except (ValueError, TypeError):
+            fields = None
+
+    # course_name to print on the certificate — required
+    course_name = request.data.get("course_name", "").strip()
 
     try:
         job = CertificateGenerationJob.objects.create(
             template_file=template_file,
             issue_date=issue_date,
             student_ids=student_ids,
+            fields=fields or {},
+            course_name=course_name,
         )
     except Exception as exc:
         return Response(
@@ -678,6 +763,9 @@ def cancel_generation_job(request, job_id):
 
 @api_view(["GET"])
 def view_certificate(request, student_id):
+    # Normalize student_id
+    student_id = student_id.strip()
+    
     # Check access control: admin can view any, students can only view their own
     if not is_admin(request):
         session_student_id = request.session.get("student_id")
@@ -704,6 +792,9 @@ def view_certificate(request, student_id):
 
 @api_view(["GET"])
 def verify_certificate(request, student_id):
+    # Normalize student_id: strip whitespace and handle URL encoding
+    student_id = student_id.strip()
+    
     certificate = _latest_certificate(student_id)
     if not certificate:
         return Response({
@@ -720,6 +811,9 @@ def verify_certificate(request, student_id):
 
 @api_view(["GET"])
 def download_certificate(request, student_id):
+    # Normalize student_id
+    student_id = student_id.strip()
+    
     certificate = _latest_certificate(student_id)
     if not certificate:
         return Response({"error": "Certificate not found"}, status=status.HTTP_404_NOT_FOUND)

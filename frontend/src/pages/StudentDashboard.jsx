@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Award, Calendar, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
@@ -65,7 +65,7 @@ function StudentDashboard() {
             <div className="grid gap-4 sm:grid-cols-2">
               <InfoCard icon={IdCard} label="Student Identification" value={student.student_id} />
               <InfoCard icon={Mail} label="Contact Email" value={student.email} />
-              <InfoCard icon={Award} label="Enrolled Specialization" value={student.course_name} />
+              <InfoCard icon={Award} label="Enrolled Specialization" value={certificate?.course_name || "—"} />
               <InfoCard
                 icon={ShieldCheck}
                 label="Certificate State"
@@ -85,8 +85,22 @@ function StudentDashboard() {
               </div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Specialization Details</h3>
             </div>
-            <p className="text-base font-extrabold text-slate-800">{student.course_name}</p>
-            <p className="mt-1 text-sm text-slate-500">Includes active certificate issuing, course modules, and QR validation.</p>
+            {certificate?.course_name ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Course</p>
+                  <p className="text-base font-extrabold text-slate-800">{certificate.course_name}</p>
+                </div>
+                {certificate.issue_date && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Issue Date</p>
+                    <p className="text-sm font-semibold text-slate-700">{new Date(certificate.issue_date).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Certificate not yet issued.</p>
+            )}
           </section>
         </div>
 
@@ -159,3 +173,5 @@ function InfoCard({ icon: Icon, label, value, customBadge }) {
 }
 
 export default StudentDashboard;
+
+

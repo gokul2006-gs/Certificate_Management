@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Award, BookOpen, FileText, LogIn, Upload, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
@@ -16,9 +16,28 @@ function formatDateTime(iso) {
   });
 }
 
+const REGISTRATION_TYPES = [
+  {
+    value: "internship",
+    label: "Internship",
+    desc: "Register as Internship Training. Course column ignored.",
+  },
+  {
+    value: "project",
+    label: "Project",
+    desc: "Register with Project Title from the Excel's 'Project Title' column.",
+  },
+  {
+    value: "course",
+    label: "Course",
+    desc: "Register with Course Name from the Excel's 'Course' column.",
+  },
+];
+
 function AdminDashboard() {
   const [stats, setStats] = useState({ students: 0, courses: 0, certificates: 0 });
   const [file, setFile] = useState(null);
+  const [registrationType, setRegistrationType] = useState("internship");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginLogs, setLoginLogs] = useState([]);
@@ -56,6 +75,7 @@ function AdminDashboard() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("registration_type", registrationType);
     setLoading(true);
     setMessage("");
 
@@ -98,8 +118,8 @@ function AdminDashboard() {
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div 
-              key={card.label} 
+            <div
+              key={card.label}
               className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out border-l-4 border-l-primary-500"
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -115,12 +135,40 @@ function AdminDashboard() {
 
       {/* Excel Upload Section */}
       <section className="mt-8 rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm animate-fade-in-up">
-        <div className="mb-6">
+        <div className="mb-5">
           <h3 className="text-base font-bold tracking-tight text-slate-800">Excel Bulk Student Upload</h3>
           <p className="mt-1 text-xs leading-relaxed text-slate-500 max-w-2xl">
-            Upload an `.xlsx` file with `Name` and `Email` columns. Optionally include `Course` (or `course_name`) to set each student's registered course.
-            Existing profiles matching standard email structures will be updated.
+            Upload an <code className="bg-slate-100 px-1 rounded">.xlsx</code> file. Choose what students are registering for, then pick the file.
           </p>
+        </div>
+
+        {/* Registration Type Selector */}
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {REGISTRATION_TYPES.map((type) => (
+            <label
+              key={type.value}
+              className={`flex cursor-pointer flex-col gap-1 rounded-xl border-2 p-4 transition-all duration-200 ${
+                registrationType === type.value
+                  ? "border-primary-500 bg-primary-50/60"
+                  : "border-slate-200 bg-slate-50/50 hover:border-slate-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="registration_type"
+                  value={type.value}
+                  checked={registrationType === type.value}
+                  onChange={() => setRegistrationType(type.value)}
+                  className="accent-primary-600"
+                />
+                <span className={`text-xs font-bold ${registrationType === type.value ? "text-primary-700" : "text-slate-700"}`}>
+                  {type.label}
+                </span>
+              </div>
+              <p className="text-[10px] leading-relaxed text-slate-400 pl-5">{type.desc}</p>
+            </label>
+          ))}
         </div>
 
         <form onSubmit={handleExcelUpload} className="flex flex-col gap-4 sm:flex-row sm:items-center">
