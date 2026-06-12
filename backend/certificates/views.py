@@ -2,6 +2,7 @@ import os
 import re
 import zipfile
 import qrcode
+import functools
 
 from io import BytesIO
 
@@ -90,8 +91,21 @@ def _create_certificate(student, certificate_file, file_name=None):
     return certificate, verification_url
 
 
+_WORKING_FONT_PATH = {True: None, False: None}
+
+
+@functools.lru_cache(maxsize=256)
 def _load_font(size, bold=False):
     from PIL import ImageFont
+    global _WORKING_FONT_PATH
+
+    # Try cached working path first
+    cached_path = _WORKING_FONT_PATH[bold]
+    if cached_path:
+        try:
+            return ImageFont.truetype(cached_path, size)
+        except OSError:
+            _WORKING_FONT_PATH[bold] = None
 
     candidates = [
         "arialbd.ttf" if bold else "arial.ttf",
@@ -106,7 +120,9 @@ def _load_font(size, bold=False):
     ]
     for font_path in candidates:
         try:
-            return ImageFont.truetype(font_path, size)
+            font = ImageFont.truetype(font_path, size)
+            _WORKING_FONT_PATH[bold] = font_path
+            return font
         except OSError:
             continue
     return ImageFont.load_default()
@@ -119,14 +135,28 @@ def _draw_centered(draw, text, y, font, image_width, color):
 
 
 def _fit_font(text, max_width, start_size, min_size=16, bold=False):
-    font_size = start_size
-    while font_size >= min_size:
-        font = _load_font(font_size, bold=bold)
+    max_k = (start_size - min_size) // 2
+    if max_k < 0:
+        return _load_font(min_size, bold=bold)
+
+    low = 0
+    high = max_k
+    best_k = None
+
+    while low <= high:
+        mid = (low + high) // 2
+        size = start_size - 2 * mid
+        font = _load_font(size, bold=bold)
         left, top, right, bottom = font.getbbox(text)
         if right - left <= max_width:
-            return font
-        font_size -= 2
-    return _load_font(min_size, bold=bold)
+            best_k = mid
+            high = mid - 1  # We want the LARGEST size (smallest k)
+        else:
+            low = mid + 1   # Need smaller size (larger k)
+
+    if best_k is None:
+        return _load_font(min_size, bold=bold)
+    return _load_font(start_size - 2 * best_k, bold=bold)
 
 
 def _wrap_text(text, font, max_width, draw):
@@ -171,20 +201,48 @@ def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=
     lines = _wrap_text(text, font, right - left, draw)
     line_spacing = max(2, int(font.size * 0.15)) if hasattr(font, "size") else 4
 
-    def measured_total_height():
+    def measured_total_height(lines_list, font_obj, spacing):
         height = 0
-        for line in lines:
-            _, line_top, _, line_bottom = draw.textbbox((0, 0), line, font=font)
+        for line in lines_list:
+            _, line_top, _, line_bottom = draw.textbbox((0, 0), line, font=font_obj)
             height += line_bottom - line_top
-        height += line_spacing * (len(lines) - 1)
+        height += spacing * (len(lines_list) - 1)
         return height
 
-    total_height = measured_total_height()
-    while total_height > (bottom - top) and font.size > min_size:
-        font = _load_font(font.size - 2, bold=bold)
-        lines = _wrap_text(text, font, right - left, draw)
-        line_spacing = max(2, int(font.size * 0.15))
-        total_height = measured_total_height()
+    total_height = measured_total_height(lines, font, line_spacing)
+
+    # Optimize height fitting using binary search
+    current_size = font.size
+    max_k = (current_size - min_size) // 2
+    if total_height > (bottom - top) and max_k > 0:
+        low = 0
+        high = max_k
+        best_k = None
+
+        while low <= high:
+            mid = (low + high) // 2
+            size = current_size - 2 * mid
+            test_font = _load_font(size, bold=bold)
+            test_lines = _wrap_text(text, test_font, right - left, draw)
+            test_spacing = max(2, int(test_font.size * 0.15))
+            test_height = measured_total_height(test_lines, test_font, test_spacing)
+
+            if test_height <= (bottom - top):
+                best_k = mid
+                high = mid - 1  # Try to find a larger size (smaller k)
+            else:
+                low = mid + 1   # Try to find a smaller size (larger k)
+
+        if best_k is not None:
+            font = _load_font(current_size - 2 * best_k, bold=bold)
+            lines = _wrap_text(text, font, right - left, draw)
+            line_spacing = max(2, int(font.size * 0.15))
+            total_height = measured_total_height(lines, font, line_spacing)
+        else:
+            font = _load_font(min_size, bold=bold)
+            lines = _wrap_text(text, font, right - left, draw)
+            line_spacing = max(2, int(font.size * 0.15))
+            total_height = measured_total_height(lines, font, line_spacing)
 
     y = top + ((bottom - top) - total_height) / 2
     for line in lines:
@@ -385,6 +443,32 @@ def bulk_upload_certificates(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # Pre-scan files and zip archive to collect student IDs for a single bulk query
+    student_ids_to_query = set()
+    for uploaded_file in uploaded_files:
+        student_id = _student_id_from_filename(uploaded_file.name)
+        if student_id:
+            student_ids_to_query.add(student_id)
+
+    archive = None
+    if zip_file:
+        try:
+            archive = zipfile.ZipFile(zip_file)
+            for entry in archive.infolist():
+                if entry.is_dir():
+                    continue
+                student_id = _student_id_from_filename(entry.filename)
+                if student_id:
+                    student_ids_to_query.add(student_id)
+        except zipfile.BadZipFile:
+            return Response({"error": "Invalid ZIP file"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Perform a single bulk query to fetch all matching student records
+    student_map = {}
+    if student_ids_to_query:
+        students = Student.objects.filter(student_id__in=list(student_ids_to_query))
+        student_map = {student.student_id: student for student in students}
+
     created = []
     skipped = []
 
@@ -398,9 +482,8 @@ def bulk_upload_certificates(request):
             skipped.append({"file": file_name, "reason": "No student ID found in filename"})
             return
 
-        try:
-            student = Student.objects.get(student_id=student_id)
-        except Student.DoesNotExist:
+        student = student_map.get(student_id)
+        if not student:
             skipped.append({"file": file_name, "reason": f"{student_id} not found"})
             return
 
@@ -422,17 +505,16 @@ def bulk_upload_certificates(request):
     for uploaded_file in uploaded_files:
         process_file(uploaded_file.name, uploaded_file)
 
-    if zip_file:
+    if archive:
         try:
-            with zipfile.ZipFile(zip_file) as archive:
-                for entry in archive.infolist():
-                    if entry.is_dir():
-                        continue
-                    with archive.open(entry) as source:
-                        content = ContentFile(source.read(), name=os.path.basename(entry.filename))
-                        process_file(entry.filename, content)
-        except zipfile.BadZipFile:
-            return Response({"error": "Invalid ZIP file"}, status=status.HTTP_400_BAD_REQUEST)
+            for entry in archive.infolist():
+                if entry.is_dir():
+                    continue
+                with archive.open(entry) as source:
+                    content = ContentFile(source.read(), name=os.path.basename(entry.filename))
+                    process_file(entry.filename, content)
+        finally:
+            archive.close()
 
     return Response({
         "message": "Bulk certificate upload completed",

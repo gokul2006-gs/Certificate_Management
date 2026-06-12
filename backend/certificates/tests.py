@@ -59,7 +59,8 @@ class CertificateGenerationTests(TestCase):
                 "student_ids": ["TSC001"]
             }
         )
-        # Verify creation is successful
+        if response.status_code != 201:
+            print("RESPONSE CONTENT:", response.content)
         self.assertEqual(response.status_code, 201)
         data = response.json()
         job_id = data["job_id"]
@@ -77,3 +78,48 @@ class CertificateGenerationTests(TestCase):
 
         # Verify a certificate model was actually created
         self.assertTrue(Certificate.objects.filter(student=self.student).exists())
+
+    def test_bulk_upload_query_count(self):
+        # Log in admin session to pass admin check
+        session = self.client.session
+        session["role"] = "admin"
+        session.save()
+
+        # Create multiple students
+        for i in range(2, 6):
+            student_id = f"TSC{i:03d}"
+            Student.objects.create(
+                student_id=student_id,
+                name=f"Student {i}",
+                email=f"student{i}@example.com",
+                password="password123",
+                course=self.course
+            )
+
+        # Create multiple dummy files
+        files = []
+        for i in range(2, 6):
+            student_id = f"TSC{i:03d}"
+            files.append(
+                SimpleUploadedFile(
+                    f"{student_id}_cert.png",
+                    b"fake_file_content_png_image",
+                    content_type="image/png"
+                )
+            )
+
+        # Capture queries during request
+        from django.test.utils import CaptureQueriesContext
+        from django.db import connection
+
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.post(
+                "/api/certificates/bulk-upload/",
+                data={"certificate_files": files}
+            )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["created_count"], 4)
+        print(f"\nNumber of queries executed for 4 files: {len(ctx.captured_queries)}")
+
