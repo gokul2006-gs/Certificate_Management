@@ -36,6 +36,7 @@ function UploadCertificate() {
     const formData = new FormData();
     formData.append("student_id", studentId);
     formData.append("certificate_file", file);
+    formData.append("issue_date", issueDate);
 
     setLoading(true);
     setMessage("");
@@ -44,7 +45,7 @@ function UploadCertificate() {
     try {
       const response = await api.post("/certificates/upload/", formData);
       setResult(response.data);
-      setMessage("Certificate uploaded and secure QR code generated.");
+      setMessage("Certificate generated successfully from template.");
 
       setStudentId("");
       setFile(null);
@@ -224,7 +225,7 @@ function UploadCertificate() {
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary-50 text-primary-600">
                 <FileUp size={16} />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-wider">Single Student Upload</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wider">Single Student Issue from Template</h3>
             </div>
 
             <label className="mb-4 block">
@@ -244,15 +245,25 @@ function UploadCertificate() {
               </select>
             </label>
 
-            <label className="mb-6 block">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Certificate File (PDF, JPG, PNG)</span>
+            <label className="mb-4 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Empty Template File (JPG, PNG)</span>
               <input
                 type="file"
                 id="single-cert-file"
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".jpg,.jpeg,.png"
                 onChange={(event) => setFile(event.target.files?.[0] || null)}
                 required
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200"
+              />
+            </label>
+
+            <label className="mb-6 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Certificate Issue Date</span>
+              <input
+                type="date"
+                value={issueDate}
+                onChange={(event) => setIssueDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200"
               />
             </label>
 
@@ -261,7 +272,7 @@ function UploadCertificate() {
               className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-primary-600/15"
             >
               <FileUp size={15} />
-              {loading ? "Uploading..." : "Issue & Build QR"}
+              {loading ? "Generating..." : "Generate & Issue"}
             </button>
 
             {message && (

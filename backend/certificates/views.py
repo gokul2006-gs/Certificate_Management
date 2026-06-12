@@ -405,25 +405,38 @@ def upload_certificate(request):
 
     if not student_id or not certificate_file:
         return Response(
-            {"error": "Student ID and certificate file are required"},
+            {"error": "Student ID and template file are required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if not _is_allowed_file(certificate_file.name):
+    if not certificate_file.name.lower().endswith((".jpg", ".jpeg", ".png")):
         return Response(
-            {"error": "Only PDF, JPG, JPEG, and PNG files are allowed"},
+            {"error": "Template must be a JPG or PNG image"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
-        student = Student.objects.get(student_id=student_id)
+        student = Student.objects.select_related("course").get(student_id=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    certificate, verification_url = _create_certificate(student, certificate_file)
+    issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+
+    try:
+        generated_file = _generated_certificate_file(student, certificate_file, issue_date)
+        certificate, verification_url = _create_certificate(
+            student,
+            generated_file,
+            generated_file.name,
+        )
+    except Exception as exc:
+        return Response(
+            {"error": f"Failed to generate certificate from template: {exc}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response({
-        "message": "Certificate uploaded successfully",
+        "message": "Certificate generated successfully from template",
         "certificate": _absolute_media_url(request, certificate.certificate_file),
         "download_url": _download_url(request, certificate.student.student_id),
         "qr": _absolute_media_url(request, certificate.qr_code),

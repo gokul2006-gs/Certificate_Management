@@ -447,10 +447,40 @@ def students(request):
     data = request.data.copy()
     data.setdefault("student_id", _next_student_id())
     data.setdefault("password", DEFAULT_PASSWORD)
-    if not data.get("course"):
-        data["course"] = str(_ensure_course().id)
+
+    course_input = data.get("course")
+    duration_input = data.get("duration")
+
+    if course_input:
+        from bson import ObjectId
+        from bson.errors import InvalidId
+        course_obj = None
+        try:
+            course_id = ObjectId(course_input)
+            course_obj = Course.objects.filter(id=course_id).first()
+        except (InvalidId, TypeError, ValueError):
+            pass
+
+        if not course_obj:
+            course_name = str(course_input).strip()
+            if course_name:
+                course_obj, _ = Course.objects.get_or_create(
+                    course_name=course_name,
+                    defaults={"duration": duration_input or "3 Months"}
+                )
+                if duration_input and course_obj.duration != duration_input:
+                    course_obj.duration = duration_input
+                    course_obj.save(update_fields=["duration"])
+            else:
+                course_obj = _ensure_course()
+        else:
+            if duration_input and course_obj.duration != duration_input:
+                course_obj.duration = duration_input
+                course_obj.save(update_fields=["duration"])
+
+        data["course"] = str(course_obj.id)
     else:
-        data["course"] = str(data["course"])
+        data["course"] = str(_ensure_course().id)
 
     serializer = StudentSerializer(data=data)
     if serializer.is_valid():

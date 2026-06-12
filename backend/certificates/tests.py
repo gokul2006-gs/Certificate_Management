@@ -123,3 +123,29 @@ class CertificateGenerationTests(TestCase):
         self.assertEqual(data["created_count"], 4)
         print(f"\nNumber of queries executed for 4 files: {len(ctx.captured_queries)}")
 
+    def test_single_certificate_generation_from_template(self):
+        # Log in admin session to pass admin check
+        session = self.client.session
+        session["role"] = "admin"
+        session.save()
+
+        # Call the single upload endpoint with a template file
+        response = self.client.post(
+            "/api/certificates/upload/",
+            data={
+                "student_id": self.student.student_id,
+                "certificate_file": self.dummy_template,
+                "issue_date": "2026-06-12"
+            }
+        )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn("certificate", data)
+        self.assertIn("qr", data)
+        self.assertIn("verification_url", data)
+
+        # Verify a certificate model was created and file is generated
+        self.assertTrue(Certificate.objects.filter(student=self.student).exists())
+
+

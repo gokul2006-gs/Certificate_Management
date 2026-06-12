@@ -66,3 +66,39 @@ class AccountsViewTests(TestCase):
         self.assertEqual(data['student_id'], 'TSC001')
         self.assertEqual(data['name'], 'Student Name')
 
+    def test_student_creation_with_course_and_duration(self):
+        # Log in admin session to pass admin check
+        from django.contrib.auth.models import User
+        User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="adminpassword"
+        )
+        session = self.client.session
+        session["role"] = "admin"
+        session.save()
+
+        # Create student with a new course and duration
+        response = self.client.post(
+            "/api/accounts/students/",
+            data={
+                "name": "New Student",
+                "email": "new.student@example.com",
+                "course": "Data Science",
+                "duration": "6 Months"
+            },
+            content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["name"], "New Student")
+        self.assertEqual(data["email"], "new.student@example.com")
+        self.assertEqual(data["course_name"], "Data Science")
+
+        # Verify Course duration was set correctly
+        student_obj = Student.objects.get(student_id=data["student_id"])
+        self.assertEqual(student_obj.course.course_name, "Data Science")
+        self.assertEqual(student_obj.course.duration, "6 Months")
+
+

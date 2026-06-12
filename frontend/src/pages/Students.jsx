@@ -3,7 +3,7 @@ import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api, { formatApiError } from "../services/api";
 
-const emptyForm = { name: "", email: "" };
+const emptyForm = { name: "", email: "", course: "", duration: "" };
 
 function Students() {
   const [students, setStudents] = useState([]);
@@ -11,7 +11,7 @@ function Students() {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
-  const [editForm, setEditForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState({ name: "", email: "" });
   const [message, setMessage] = useState("");
 
   const loadStudents = async () => {
@@ -53,6 +53,8 @@ function Students() {
       await api.post("/accounts/students/", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
+        course: form.course.trim(),
+        duration: form.duration.trim(),
       });
       setForm(emptyForm);
       setMessage("Student created successfully (default password: Tech@123)");
@@ -131,7 +133,7 @@ function Students() {
       {/* Creation form */}
       <section className="mb-8 rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm animate-fade-in-up">
         <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">Add New Registration</h3>
-        <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
+        <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-[1.2fr_1.2fr_1.2fr_1fr_auto] items-end">
           <input
             value={form.name}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -145,6 +147,20 @@ function Students() {
             onChange={(event) => setForm({ ...form, email: event.target.value })}
             required
             placeholder="Email Address"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+          />
+          <input
+            value={form.course}
+            onChange={(event) => setForm({ ...form, course: event.target.value })}
+            required
+            placeholder="Course Name"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
+          />
+          <input
+            value={form.duration}
+            onChange={(event) => setForm({ ...form, duration: event.target.value })}
+            required
+            placeholder="Duration (e.g. 3 Months)"
             className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 transition-all duration-200"
           />
           <button className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-xs font-bold text-white hover:bg-slate-850 active:scale-[0.98] transition duration-200 shadow-md shadow-slate-950/15">
