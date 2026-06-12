@@ -355,40 +355,24 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     _draw_box_centered(
         draw, display_course,
         course_box,
-        max(54, int(width * 0.052)), text_color,
+        max(60, int(width * 0.058)), text_color,
         font_loader=_load_script_font,
-        min_size=max(26, int(width * 0.022)),
+        min_size=max(30, int(width * 0.025)),
     )
 
-    # --- issue date  (serif regular) ---
+    # --- issue date  (script font to match student name and course) ---
     date_box = _field("issue_date") or box(0.250, 0.720, 0.780, 0.760)
     _draw_box_centered(
         draw, issue_date,
         date_box,
-        max(18, int(width * 0.016)), muted_color,
-        font_loader=lambda s: _load_serif_font(s, bold=False),
-        min_size=max(12, int(width * 0.011)),
+        max(60, int(width * 0.058)), text_color,
+        font_loader=_load_script_font,
+        min_size=max(30, int(width * 0.025)),
     )
 
-    # --- student id  (serif regular, small) ---
-    id_box = _field("student_id") or box(0.340, 0.760, 0.680, 0.792)
-    _draw_box_centered(
-        draw, f"ID: {student.student_id}",
-        id_box,
-        max(15, int(width * 0.014)), muted_color,
-        font_loader=lambda s: _load_serif_font(s, bold=False),
-        min_size=max(11, int(width * 0.010)),
-    )
-
-    # --- duration  (serif regular, small) ---
-    duration_box = _field("duration") or box(0.300, 0.792, 0.700, 0.825)
-    _draw_box_centered(
-        draw, "",
-        duration_box,
-        max(15, int(width * 0.013)), muted_color,
-        font_loader=lambda s: _load_serif_font(s, bold=False),
-        min_size=max(10, int(width * 0.009)),
-    )
+    # Note: Student ID and duration fields removed as per requirement
+    # Certificate now only displays: Student Name, Course Title, and Issue Date
+    # All three fields use the same script font and size for consistency
 
     # --- QR code ---
     if fields and "qr" in fields:
