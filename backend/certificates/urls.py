@@ -5,6 +5,7 @@ from .views import (
     cancel_generation_job,
     create_generation_job,
     download_certificate,
+    download_all_certificates_zip,
     generate_certificates_from_template,
     poll_generation_job,
     upload_certificate,
@@ -54,6 +55,13 @@ urlpatterns = [
         download_certificate,
         name="certificate-download",
     ),
+    
+    path(
+        'download-all/',
+        download_all_certificates_zip,
+        name="download-all-certificates",
+    ),
+    
     path(
     'view/<str:student_id>/',
     view_certificate

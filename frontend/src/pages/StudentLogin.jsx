@@ -10,7 +10,7 @@ function StudentLogin() {
   const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("Tech@123");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);  const [loading, setLoading] = useState(false);  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -73,8 +73,9 @@ function StudentLogin() {
 
           <label className="mb-6 block">
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Password</span>
+            <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}

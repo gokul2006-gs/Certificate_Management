@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { LockKeyhole, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import api, { formatApiError } from "../services/api";
 import { useAuth } from "../navigation/AuthContext";
 
@@ -9,7 +9,7 @@ function AdminLogin() {
   const { refreshSession } = useAuth();
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);  const [loading, setLoading] = useState(false);  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -75,8 +75,9 @@ function AdminLogin() {
 
           <label className="mb-6 block">
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Password</span>
+            <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
               value={form.password}
               onChange={(event) => setForm({ ...form, password: event.target.value })}

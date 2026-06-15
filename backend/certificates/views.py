@@ -941,3 +941,60 @@ def download_certificate(request, student_id):
 
     file_name = os.path.basename(certificate.certificate_file.name)
     return FileResponse(file_handle, as_attachment=True, filename=file_name)
+
+
+@api_view(["GET"])
+@admin_required
+def download_all_certificates_zip(request):
+    """Download all certificates as a ZIP file"""
+    # Get all certificates with available files
+    certificates = Certificate.objects.select_related("student").all()
+    
+    if not certificates.exists():
+        return Response(
+            {"error": "No certificates found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Create ZIP file in memory
+    zip_buffer = BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        added_count = 0
+        
+        for cert in certificates:
+            if cert.certificate_file and _file_available(cert.certificate_file):
+                try:
+                    # Read certificate file
+                    cert.certificate_file.open('rb')
+                    file_data = cert.certificate_file.read()
+                    cert.certificate_file.close()
+                    
+                    # Create filename: StudentID-StudentName-certificate.png
+                    safe_name = cert.student.name.replace(' ', '_').replace('/', '_')
+                    filename = f"{cert.student.student_id}-{safe_name}-certificate.png"
+                    
+                    # Add to ZIP
+                    zip_file.writestr(filename, file_data)
+                    added_count += 1
+                    
+                except Exception as e:
+                    # Skip files that can't be read
+                    continue
+        
+        if added_count == 0:
+            return Response(
+                {"error": "No certificate files available to download"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Prepare response
+    zip_buffer.seek(0)
+    response = FileResponse(
+        zip_buffer,
+        as_attachment=True,
+        filename=f"all_certificates_{timezone.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    )
+    response['Content-Type'] = 'application/zip'
+    
+    return response
