@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+ï»¿import { useEffect, useState } from "react";
 import { Award, BookOpen, FileText, LogIn, Upload, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
 
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "Ã¹";
   return new Date(iso).toLocaleString("en-IN", {
     year: "numeric",
     month: "short",
@@ -215,7 +215,7 @@ function AdminDashboard() {
                     <td className="px-5 py-3.5 font-bold text-slate-800">{log.username}</td>
                     <td className="px-5 py-3.5 font-medium">{formatDateTime(log.login_at)}</td>
                     <td className="px-5 py-3.5 font-medium">{formatDateTime(log.logout_at)}</td>
-                    <td className="px-5 py-3.5 text-slate-400">{log.ip_address || "—"}</td>
+                    <td className="px-5 py-3.5 text-slate-400">{log.ip_address || "Ã¹"}</td>
                     <td className="px-5 py-3.5">
                       {log.logout_at ? (
                         <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">

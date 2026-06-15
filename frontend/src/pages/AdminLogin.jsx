@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import api, { formatApiError } from "../services/api";
@@ -82,7 +82,7 @@ function AdminLogin() {
               value={form.password}
               onChange={(event) => setForm({ ...form, password: event.target.value })}
               className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-slate-800 focus:bg-white focus:ring-4 focus:ring-slate-800/5 hover:scale-[1.01] focus:scale-[1.01] transition-all duration-300"
-              placeholder="••••••••"
+              placeholder="ÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇó"
             />
           </label>
 
