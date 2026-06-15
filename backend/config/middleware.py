@@ -60,6 +60,12 @@ class CorsExceptionMiddleware:
         return self._apply_cors(request, response)
 
     def _origin_allowed(self, origin):
+        if not origin:
+            return False
+
+        if getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False):
+            return True
+
         normalized = origin.rstrip("/")
         allowed = {value.rstrip("/") for value in getattr(settings, "CORS_ALLOWED_ORIGINS", [])}
         if normalized in allowed:

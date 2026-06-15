@@ -12,10 +12,8 @@ function normalizeApiBaseUrl(url) {
 
 function resolveApiBaseUrl() {
   if (import.meta.env.PROD) {
-    const configured = import.meta.env.VITE_API_URL?.trim();
-    if (configured) {
-      return normalizeApiBaseUrl(configured);
-    }
+    // Use the same-origin /api path on Vercel so the browser does not hit
+    // Render directly and trigger CORS for certificate generation polling.
     return normalizeApiBaseUrl(window.location.origin);
   }
 
