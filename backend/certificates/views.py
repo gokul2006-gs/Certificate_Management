@@ -115,32 +115,21 @@ def _resolve_font(candidates):
 
 @functools.lru_cache(maxsize=512)
 def _load_script_font(size):
-    """Script/cursive font matching the certificate name & course style."""
+    """Script/cursive font - uses Great Vibes or Monotype Corsiva for elegant certificate style."""
     global _SCRIPT_FONT_PATH
     from PIL import ImageFont
     if _SCRIPT_FONT_PATH is None:
         _SCRIPT_FONT_PATH = _resolve_font([
-            # Most elegant calligraphic/script fonts for professional certificates
-            # Prioritize Great Vibes and similar flowing cursive fonts
-            os.path.join(settings.BASE_DIR, "assets", "fonts", "GreatVibes-Regular.ttf"),
+            # Great Vibes from backend folder (local copy)
+            os.path.join(settings.BASE_DIR, "Great_Vibes", "GreatVibes-Regular.ttf"),
+            os.path.join(settings.BASE_DIR, "GreatVibes-Regular.ttf"),
+            # Great Vibes from Windows system
             "C:/Windows/Fonts/GreatVibes-Regular.ttf",
             "C:/Windows/Fonts/GreatVibes.ttf",
-            "C:/Windows/Fonts/MTCORSVA.TTF",   # Monotype Corsiva - very elegant
-            "C:/Windows/Fonts/EDWARDIAN SCRIPT ITC.TTF",
-            "C:/Windows/Fonts/ITCEDSCR.TTF",
-            "C:/Windows/Fonts/PRISTINA.TTF",
-            "C:/Windows/Fonts/FRSCRIPT.TTF",   # French Script
-            "C:/Windows/Fonts/FREESCPT.TTF",
-            "C:/Windows/Fonts/KUNSTLER.TTF",   # Kunstler Script
-            "C:/Windows/Fonts/VLADIMIR.TTF",
-            "C:/Windows/Fonts/BrushScriptMT.ttf",
-            "C:/Windows/Fonts/BRUSHSCI.TTF",
-            "C:/Windows/Fonts/Segoe Script.ttf",
-            "C:/Windows/Fonts/VIVALDII.TTF",
-            # Linux alternatives
-            "/usr/share/fonts/truetype/urw/URWChanceryL-MediItal.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSerifCondensed-Italic.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+            "C:/Windows/Fonts/Great Vibes.ttf",
+            os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Microsoft\\Windows\\Fonts\\GreatVibes-Regular.ttf'),
+            # Monotype Corsiva as fallback
+            "C:/Windows/Fonts/MTCORSVA.TTF",
         ])
     if _SCRIPT_FONT_PATH:
         try:
