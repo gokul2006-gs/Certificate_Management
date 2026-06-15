@@ -1,8 +1,26 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Award, BookOpen, FileText, LogIn, Upload, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
+
+const REGISTRATION_TYPES = [
+  {
+    value: "course",
+    label: "Course Registration",
+    desc: "Students registering for a specific course or programme.",
+  },
+  {
+    value: "exam",
+    label: "Exam Registration",
+    desc: "Students registering to sit an upcoming examination.",
+  },
+  {
+    value: "event",
+    label: "Event Registration",
+    desc: "Students registering for a workshop, seminar, or event.",
+  },
+];
 
 function formatDateTime(iso) {
   if (!iso) return "ù";
@@ -22,6 +40,7 @@ function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginLogs, setLoginLogs] = useState([]);
+  const [registrationType, setRegistrationType] = useState(REGISTRATION_TYPES[0].value);
 
   const loadStats = async () => {
     const response = await api.get("/accounts/dashboard-stats/");
