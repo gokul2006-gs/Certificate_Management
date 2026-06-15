@@ -120,18 +120,18 @@ def _load_script_font(size):
     from PIL import ImageFont
     if _SCRIPT_FONT_PATH is None:
         _SCRIPT_FONT_PATH = _resolve_font([
-            # Prefer Great Vibes for the requested certificate calligraphy.
-            os.path.join(settings.BASE_DIR, "assets", "fonts", "GreatVibes-Regular.ttf"),
-            "C:/Windows/Fonts/GreatVibes-Regular.ttf",
-            "C:/Windows/Fonts/GreatVibes.ttf",
-            "C:/Windows/Fonts/ITCEDSCR.TTF",
+            # Prefer the most handwritten/calligraphic fonts available on the runtime.
             "C:/Windows/Fonts/MTCORSVA.TTF",
-            "C:/Windows/Fonts/KUNSTLER.TTF",
-            "C:/Windows/Fonts/VLADIMIR.TTF",
-            "C:/Windows/Fonts/VIVALDII.TTF",
             "C:/Windows/Fonts/PRISTINA.TTF",
             "C:/Windows/Fonts/FREESCPT.TTF",
             "C:/Windows/Fonts/FRSCRIPT.TTF",
+            "C:/Windows/Fonts/ITCEDSCR.TTF",
+            "C:/Windows/Fonts/KUNSTLER.TTF",
+            "C:/Windows/Fonts/VLADIMIR.TTF",
+            os.path.join(settings.BASE_DIR, "assets", "fonts", "GreatVibes-Regular.ttf"),
+            "C:/Windows/Fonts/GreatVibes-Regular.ttf",
+            "C:/Windows/Fonts/GreatVibes.ttf",
+            "C:/Windows/Fonts/VIVALDII.TTF",
             # Linux
             "/usr/share/fonts/truetype/urw/URWChanceryL-MediItal.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSerifCondensed-Italic.ttf",
@@ -447,9 +447,9 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     _draw_centered_single_line(
         draw, student.name,
         name_box,
-        max(64, int(width * 0.062)), text_color,
+        max(72, int(width * 0.070)), text_color,
         font_loader=_load_script_font,
-        min_size=max(32, int(width * 0.030)),
+        min_size=max(36, int(width * 0.034)),
         stroke_width=0,
     )
 
@@ -457,9 +457,9 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     _draw_centered_single_line(
         draw, display_course,
         course_box,
-        max(60, int(width * 0.058)), text_color,
+        max(64, int(width * 0.062)), text_color,
         font_loader=_load_script_font,
-        min_size=max(30, int(width * 0.028)),
+        min_size=max(32, int(width * 0.030)),
         stroke_width=0,
     )
 
@@ -469,9 +469,9 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     _draw_centered_single_line(
         draw, date_text,
         date_box,
-        max(24, int(width * 0.027)), accent_color,
+        max(28, int(width * 0.031)), accent_color,
         font_loader=_load_serif_font,
-        min_size=max(12, int(width * 0.0135)),
+        min_size=max(14, int(width * 0.015)),
         stroke_width=0,
     )
 
