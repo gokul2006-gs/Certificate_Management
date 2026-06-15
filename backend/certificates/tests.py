@@ -9,9 +9,25 @@ from django.urls import reverse
 from accounts.models import Student
 from courses.models import Course
 from certificates.models import CertificateGenerationJob, Certificate
+from certificates.views import _format_certificate_date, _resolve_field_box
 
 
 class CertificateGenerationTests(TestCase):
+    def test_format_certificate_date_uses_readable_date_style(self):
+        self.assertEqual(
+            _format_certificate_date("2026-06-01 to 2026-06-30"),
+            "1st June 2026 to 30th June 2026",
+        )
+
+    def test_resolve_field_box_accepts_fraction_and_percentage_coordinates(self):
+        width, height = 1000, 800
+
+        fraction_box = _resolve_field_box({"x1": 0.22, "y1": 0.35, "x2": 0.78, "y2": 0.41}, width, height)
+        percentage_box = _resolve_field_box({"x1": 22, "y1": 35, "x2": 78, "y2": 41}, width, height)
+
+        self.assertEqual(fraction_box, (220, 280, 780, 328))
+        self.assertEqual(percentage_box, (220, 280, 780, 328))
+
     def setUp(self):
         # Create admin user
         self.admin_user = User.objects.create_superuser(
@@ -30,7 +46,6 @@ class CertificateGenerationTests(TestCase):
             name="Alice Smith",
             email="alice@example.com",
             password="password123",
-            course=self.course
         )
 
         # Create a tiny 10x10 pixel PNG image in memory for template file
@@ -93,7 +108,6 @@ class CertificateGenerationTests(TestCase):
                 name=f"Student {i}",
                 email=f"student{i}@example.com",
                 password="password123",
-                course=self.course
             )
 
         # Create multiple dummy files

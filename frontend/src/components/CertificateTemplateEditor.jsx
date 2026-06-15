@@ -2,12 +2,9 @@
 import { Move } from "lucide-react";
 
 const FIELD_DEFS = [
-  { key: "name",       label: "Student Name",    color: "#3b82f6", default: { x1: 25, y1: 43, x2: 83, y2: 49 } },
-  { key: "course",     label: "Course / Project", color: "#10b981", default: { x1: 29, y1: 62, x2: 75, y2: 72 } },
-  { key: "issue_date", label: "Issue Date",       color: "#f59e0b", default: { x1: 30, y1: 75, x2: 70, y2: 82 } },
-  { key: "student_id", label: "Student ID",       color: "#8b5cf6", default: { x1: 35, y1: 83, x2: 65, y2: 88 } },
-  { key: "duration",   label: "Duration",         color: "#ef4444", default: { x1: 33, y1: 89, x2: 55, y2: 93 } },
-  { key: "qr",         label: "QR Code",          color: "#6366f1", default: { x1: 82, y1: 82, x2: 97, y2: 97 } },
+  { key: "name",       label: "Student Name", color: "#3b82f6", default: { x1: 25, y1: 43, x2: 83, y2: 49 } },
+  { key: "course",     label: "Course Title", color: "#10b981", default: { x1: 29, y1: 62, x2: 75, y2: 72 } },
+  { key: "issue_date", label: "Date",         color: "#f59e0b", default: { x1: 30, y1: 75, x2: 70, y2: 82 } },
 ];
 
 function clamp(v, min, max) {
@@ -42,13 +39,16 @@ export default function CertificateTemplateEditor({ imageUrl, onChange }) {
     dragRef.current = { key, mode, startX: px, startY: py, startField: { ...fields[key] } };
 
     const onMove = (ev) => {
+      const current = dragRef.current;
+      if (!current) return;
+
       const { px: cx, py: cy } = getPct(ev.clientX, ev.clientY);
-      const dx = cx - dragRef.current.startX;
-      const dy = cy - dragRef.current.startY;
-      const sf = dragRef.current.startField;
+      const dx = cx - current.startX;
+      const dy = cy - current.startY;
+      const sf = current.startField;
       setFields((prev) => {
         const next = { ...prev };
-        if (dragRef.current.mode === "move") {
+        if (current.mode === "move") {
           const w = sf.x2 - sf.x1;
           const h = sf.y2 - sf.y1;
           const nx1 = clamp(sf.x1 + dx, 0, 100 - w);
@@ -66,6 +66,11 @@ export default function CertificateTemplateEditor({ imageUrl, onChange }) {
     };
 
     const onUp = () => {
+      if (!dragRef.current) {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        return;
+      }
       dragRef.current = null;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);

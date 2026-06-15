@@ -120,9 +120,13 @@ def _load_script_font(size):
     from PIL import ImageFont
     if _SCRIPT_FONT_PATH is None:
         _SCRIPT_FONT_PATH = _resolve_font([
-            # Windows — prefer Kunstler Script (closest to certificate)
+            # Prefer Great Vibes for the requested certificate calligraphy.
+            os.path.join(settings.BASE_DIR, "assets", "fonts", "GreatVibes-Regular.ttf"),
+            "C:/Windows/Fonts/GreatVibes-Regular.ttf",
+            "C:/Windows/Fonts/GreatVibes.ttf",
+            "C:/Windows/Fonts/ITCEDSCR.TTF",
+            "C:/Windows/Fonts/MTCORSVA.TTF",
             "C:/Windows/Fonts/KUNSTLER.TTF",
-            "C:/Windows/Fonts/MTCORSVA.TTF",   # Monotype Corsiva
             "C:/Windows/Fonts/VLADIMIR.TTF",
             "C:/Windows/Fonts/VIVALDII.TTF",
             "C:/Windows/Fonts/PRISTINA.TTF",
@@ -311,6 +315,98 @@ def _draw_box_centered(draw, text, box, start_size, color, bold=False, min_size=
         y += line_height + line_spacing
 
 
+def _draw_centered_single_line(
+    draw,
+    text,
+    box,
+    start_size,
+    color,
+    bold=False,
+    min_size=16,
+    font_loader=None,
+    stroke_width=0,
+    stroke_fill=None,
+    shadow_offset=None,
+    shadow_fill=None,
+):
+    if font_loader is None:
+        font_loader = lambda s: _load_font(s, bold=bold)
+    left, top, right, bottom = box
+    text = str(text or "").strip()
+    font = _fit_font(text, right - left, start_size, min_size=min_size, font_loader=font_loader)
+    text_left, text_top, text_right, text_bottom = draw.textbbox((0, 0), text, font=font)
+    text_width = text_right - text_left
+    text_height = text_bottom - text_top
+    x = left + ((right - left) - text_width) / 2 - text_left
+    y = top + ((bottom - top) - text_height) / 2 - text_top
+    if shadow_offset and shadow_fill:
+        shadow_x = x + shadow_offset[0]
+        shadow_y = y + shadow_offset[1]
+        draw.text(
+            (shadow_x, shadow_y),
+            text,
+            font=font,
+            fill=shadow_fill,
+            stroke_width=stroke_width,
+            stroke_fill=shadow_fill,
+        )
+    draw.text(
+        (x, y),
+        text,
+        font=font,
+        fill=color,
+        stroke_width=stroke_width,
+        stroke_fill=stroke_fill or color,
+    )
+
+
+def _resolve_field_box(field, width, height):
+    if not field:
+        return None
+
+    def to_pixel(value, dimension):
+        if value is None:
+            return 0
+        value = float(value)
+        if 0 <= value <= 1:
+            return int(value * dimension)
+        return int((value / 100.0) * dimension)
+
+    return (
+        to_pixel(field.get("x1"), width),
+        to_pixel(field.get("y1"), height),
+        to_pixel(field.get("x2"), width),
+        to_pixel(field.get("y2"), height),
+    )
+
+
+def _format_certificate_date(value):
+    from datetime import datetime
+
+    def ordinal(day):
+        if 10 <= day % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        return f"{day}{suffix}"
+
+    def format_one(part):
+        part = str(part or "").strip()
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+            try:
+                parsed = datetime.strptime(part, fmt)
+                return f"{ordinal(parsed.day)} {parsed.strftime('%B')} {parsed.year}"
+            except ValueError:
+                continue
+        return part
+
+    text = str(value or "").strip()
+    if " to " in text:
+        start, end = text.split(" to ", 1)
+        return f"{format_one(start)} to {format_one(end)}"
+    return format_one(text)
+
+
 def _generated_certificate_file(student, template_file, issue_date, fields=None, course_name=None):
     from PIL import Image, ImageDraw
 
@@ -319,9 +415,12 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     draw = ImageDraw.Draw(template)
     verification_url = _verification_url(student.student_id)
 
-    text_color = (21, 32, 54)
+    # Clean teal text color and vibrant orange/gold accent color matching the TS3 demo certificate
+    text_color = (11, 52, 57)
+    name_color = (11, 52, 57)
+    name_shadow_color = (247, 247, 247)
     muted_color = (61, 75, 99)
-    accent_color = (227, 126, 26)
+    accent_color = (243, 123, 21)
 
     def box(fx1, fy1, fx2, fy2):
         return (int(width * fx1), int(height * fy1), int(width * fx2), int(height * fy2))
@@ -329,45 +428,51 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
     def _field(key):
         if not fields or key not in fields:
             return None
-        f = fields[key]
-        return (
-            int(width * f["x1"] / 100),
-            int(height * f["y1"] / 100),
-            int(width * f["x2"] / 100),
-            int(height * f["y2"] / 100),
-        )
+        return _resolve_field_box(fields[key], width, height)
 
     # course_name is passed explicitly at generation time by the admin
     display_course = course_name or ""
 
-    # --- student name  (large script, matching certificate style) ---
-    name_box = _field("name") or box(0.250, 0.390, 0.830, 0.490)
-    _draw_box_centered(
+    # SIGNIFICANTLY LOWER positioning to avoid all overlaps:
+    # Name: Well BELOW "PROUDLY PRESENTED TO" banner (~35-41% of height)
+    name_box = _field("name") or box(0.220, 0.350, 0.780, 0.415)
+    
+    # Course: Well BELOW orange bar, plenty of clearance (~49-55% of height)
+    course_box = _field("course") or box(0.200, 0.490, 0.800, 0.550)
+    
+    # Date: Well BELOW "Her performance..." text (~57-60% of height)
+    date_box = _field("issue_date") or box(0.300, 0.570, 0.700, 0.600)
+
+    # --- Student Name (elegant script, clear space below banner) ---
+    _draw_centered_single_line(
         draw, student.name,
         name_box,
-        max(60, int(width * 0.058)), text_color,
+        max(64, int(width * 0.062)), text_color,
         font_loader=_load_script_font,
-        min_size=max(30, int(width * 0.025)),
+        min_size=max(32, int(width * 0.030)),
+        stroke_width=0,
     )
 
-    # --- course / project title  (large script) ---
-    course_box = _field("course") or box(0.200, 0.560, 0.860, 0.660)
-    _draw_box_centered(
+    # --- Course Name (elegant script, clear space below orange bar) ---
+    _draw_centered_single_line(
         draw, display_course,
         course_box,
         max(60, int(width * 0.058)), text_color,
         font_loader=_load_script_font,
-        min_size=max(30, int(width * 0.025)),
+        min_size=max(30, int(width * 0.028)),
+        stroke_width=0,
     )
 
-    # --- issue date  (script font to match student name and course) ---
-    date_box = _field("issue_date") or box(0.250, 0.720, 0.780, 0.760)
-    _draw_box_centered(
-        draw, issue_date,
+    # --- Date (orange script with professional formatting) ---
+    # Format: (19th May 2025 to 04th June 2025)
+    date_text = f"({_format_certificate_date(issue_date)})"
+    _draw_centered_single_line(
+        draw, date_text,
         date_box,
-        max(60, int(width * 0.058)), text_color,
-        font_loader=_load_script_font,
-        min_size=max(30, int(width * 0.025)),
+        max(24, int(width * 0.027)), accent_color,
+        font_loader=_load_serif_font,
+        min_size=max(12, int(width * 0.0135)),
+        stroke_width=0,
     )
 
     # Note: Student ID and duration fields removed as per requirement
@@ -460,7 +565,18 @@ def upload_certificate(request):
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+    # Get start_date and end_date from request
+    start_date = request.data.get("start_date", "").strip()
+    end_date = request.data.get("end_date", "").strip()
+    
+    # Format issue_date as a date range if both dates provided
+    if start_date and end_date:
+        issue_date = f"{start_date} to {end_date}"
+    elif start_date:
+        issue_date = start_date
+    else:
+        issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+    
     course_name = request.data.get("course_name", "").strip()
 
     import json
@@ -643,7 +759,17 @@ def create_generation_job(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
+    # Get start_date and end_date from request
+    start_date = request.data.get("start_date", "").strip()
+    end_date = request.data.get("end_date", "").strip()
+    
+    # Format issue_date as a date range if both dates provided
+    if start_date and end_date:
+        issue_date = f"{start_date} to {end_date}"
+    elif start_date:
+        issue_date = start_date
+    else:
+        issue_date = request.data.get("issue_date") or timezone.localdate().isoformat()
 
     # All students — course is chosen at generation time, not stored on student
     student_ids_input = [v.strip() for v in request.data.getlist("student_ids") if v.strip()]
@@ -671,6 +797,8 @@ def create_generation_job(request):
         job = CertificateGenerationJob.objects.create(
             template_file=template_file,
             issue_date=issue_date,
+            start_date=start_date,
+            end_date=end_date,
             student_ids=student_ids,
             fields=fields or {},
             course_name=course_name,

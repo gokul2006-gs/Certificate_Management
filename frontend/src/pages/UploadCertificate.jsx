@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, Download, FileUp, Files, Upload, AlertCircle } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
+import CertificateTemplateEditor from "../components/CertificateTemplateEditor";
 import api, { formatApiError } from "../services/api";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -15,13 +16,18 @@ function UploadCertificate() {
   const [zipFile, setZipFile] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
   const [templateFile, setTemplateFile] = useState(null);
+  const [templatePreviewUrl, setTemplatePreviewUrl] = useState("");
+  const [templateFields, setTemplateFields] = useState(null);
   const [templateResult, setTemplateResult] = useState(null);
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [message, setMessage] = useState("");
   const [bulkMessage, setBulkMessage] = useState("");
   const [templateMessage, setTemplateMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [singlePreviewUrl, setSinglePreviewUrl] = useState("");
+  const [singleFields, setSingleFields] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
   const [templateProgress, setTemplateProgress] = useState(0);
@@ -48,7 +54,10 @@ function UploadCertificate() {
     const fd = new FormData();
     fd.append("student_id", studentId);
     fd.append("certificate_file", file);
-    fd.append("issue_date", issueDate);
+    if (singleFields) fd.append("fields", JSON.stringify(singleFields));
+    if (startDate) fd.append("start_date", startDate);
+    if (endDate) fd.append("end_date", endDate);
+    if (selectedCourseName) fd.append("course_name", selectedCourseName);
     setLoading(true); setMessage(""); setResult(null);
     try {
       const r = await api.post("/certificates/upload/", fd);
@@ -99,7 +108,9 @@ function UploadCertificate() {
     try {
       const fd = new FormData();
       fd.append("template_file", templateFile);
-      fd.append("issue_date", issueDate);
+      if (templateFields) fd.append("fields", JSON.stringify(templateFields));
+      if (startDate) fd.append("start_date", startDate);
+      if (endDate) fd.append("end_date", endDate);
       if (selectedCourseName) fd.append("course_name", selectedCourseName);
       const start = await api.post("/certificates/generation-jobs/", fd);
       const jobId = start.data.job_id;
@@ -163,23 +174,47 @@ function UploadCertificate() {
             <label className="mb-4 block">
               <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Certificate Template (JPG, PNG)</span>
               <input type="file" id="template-file" accept=".jpg,.jpeg,.png"
-                onChange={(e) => setTemplateFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const nextFile = e.target.files?.[0] || null;
+                  setTemplateFile(nextFile);
+                  if (templatePreviewUrl) URL.revokeObjectURL(templatePreviewUrl);
+                  setTemplatePreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
+                }}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200" />
             </label>
 
-            <label className="mb-4 block">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Issue Date</span>
-              <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
-            </label>
+            {templatePreviewUrl && (
+              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Adjust Student Detail Boxes</p>
+                <CertificateTemplateEditor imageUrl={templatePreviewUrl} onChange={setTemplateFields} />
+              </div>
+            )}
 
+<div className="mb-4 grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</span>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">End Date</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
+              </label>
+            </div>
+
+            {startDate && endDate && (
+              <p className="mb-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-2.5 text-xs font-semibold text-blue-700">
+                Date range on certificate: <span className="font-bold">({startDate} to {endDate})</span>
+              </p>
+            )}
             <label className="mb-2 block">
               <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
                 Course Name on Certificate <span className="text-red-500">*</span>
               </span>
               <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} required
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200">
-                <option value="">— Select a course —</option>
+                <option value="">� Select a course �</option>
                 {["Technical","Basic","Non-Technical","Graphic Designing","Development Services"].map((type) => {
                   const group = courses.filter((c) => c.course_type === type);
                   if (!group.length) return null;
@@ -195,7 +230,7 @@ function UploadCertificate() {
             </label>
             {selectedCourseName && (
               <p className="mb-5 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-2.5 text-xs font-semibold text-emerald-700">
-                Certificate will show: <span className="font-bold">{selectedCourseName}</span> — for all {students.length} students
+                Certificate will show: <span className="font-bold">{selectedCourseName}</span> � for all {students.length} students
               </p>
             )}
             {!selectedCourseName && (
@@ -243,21 +278,63 @@ function UploadCertificate() {
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200">
                 <option value="">Select student</option>
                 {students.map((s) => (
-                  <option key={s.student_id} value={s.student_id}>{s.student_id} — {s.name} ({s.course_name})</option>
+                  <option key={s.student_id} value={s.student_id}>{s.student_id} � {s.name} ({s.course_name})</option>
                 ))}
               </select>
             </label>
             <label className="mb-4 block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Course Name on Certificate <span className="text-red-500">*</span></span>
+              <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200">
+                <option value="">Select a course</option>
+                {['Technical','Basic','Non-Technical','Graphic Designing','Development Services'].map((type) => {
+                  const group = courses.filter((c) => c.course_type === type);
+                  if (!group.length) return null;
+                  return (
+                    <optgroup key={type} label={type}>
+                      {group.map((c) => (
+                        <option key={c.id} value={c.id}>{c.course_name}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </label>
+            {selectedCourseName && (
+              <p className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-2.5 text-xs font-semibold text-emerald-700">
+                Certificate will show: <span className="font-bold">{selectedCourseName}</span>
+              </p>
+            )}
+            <label className="mb-4 block">
               <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Template File (JPG, PNG)</span>
               <input type="file" id="single-cert-file" accept=".jpg,.jpeg,.png"
-                onChange={(e) => setFile(e.target.files?.[0] || null)} required
+                onChange={(e) => {
+                  const nextFile = e.target.files?.[0] || null;
+                  setFile(nextFile);
+                  if (singlePreviewUrl) URL.revokeObjectURL(singlePreviewUrl);
+                  setSinglePreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
+                }} required
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm text-slate-600 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300 transition duration-200" />
             </label>
-            <label className="mb-6 block">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Issue Date</span>
-              <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
-            </label>
+
+            {singlePreviewUrl && (
+              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Adjust Student Detail Boxes</p>
+                <CertificateTemplateEditor imageUrl={singlePreviewUrl} onChange={setSingleFields} />
+              </div>
+            )}
+            <div className="mb-6 grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</span>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">End Date</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all duration-200" />
+              </label>
+            </div>
             <button disabled={loading}
               className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50 transition duration-200 shadow-md shadow-primary-600/15">
               <FileUp size={15} />{loading ? "Generating..." : "Generate & Issue"}
@@ -343,7 +420,7 @@ function UploadCertificate() {
                 {bulkResult.created.length ? bulkResult.created.map((item) => (
                   <div key={`${item.student_id}-${item.file}`} className="flex items-center justify-between gap-3 p-3 text-xs">
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.student_id} � {item.student_name}</p>
                     </div>
                     <a href={item.download_url} className="rounded-lg bg-emerald-50 px-3 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100 transition">Download</a>
                   </div>
@@ -378,7 +455,7 @@ function UploadCertificate() {
                 {templateResult.created.length ? templateResult.created.map((item) => (
                   <div key={`${item.student_id}-template`} className="flex items-center justify-between gap-3 p-3 text-xs">
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.student_id} � {item.student_name}</p>
                       <a href={item.verification_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-primary-600 hover:underline">Verify</a>
                     </div>
                     <a href={item.download_url} className="rounded-lg bg-emerald-50 px-3 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100 transition">Download</a>
@@ -391,7 +468,7 @@ function UploadCertificate() {
               <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
                 {templateResult.skipped.length ? templateResult.skipped.map((item) => (
                   <div key={`${item.student_id}-${item.reason}`} className="p-3 text-xs">
-                    <p className="font-bold text-slate-800 truncate">{item.student_id} — {item.student_name}</p>
+                    <p className="font-bold text-slate-800 truncate">{item.student_id} � {item.student_name}</p>
                     <p className="mt-0.5 text-[10px] text-red-600 font-semibold">{item.reason}</p>
                   </div>
                 )) : <p className="p-4 text-xs text-slate-400 text-center">None.</p>}

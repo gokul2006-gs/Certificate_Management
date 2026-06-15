@@ -2,13 +2,17 @@ import mimetypes
 import os
 from urllib.parse import quote
 
-import certifi
 import gridfs
 from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 from pymongo import MongoClient
+
+try:
+    import certifi
+except ImportError:
+    certifi = None
 
 
 _client = None
@@ -22,7 +26,10 @@ def _mongo_client():
 
     mongo_uri = settings.MONGODB_URI
     if mongo_uri:
-        _client = MongoClient(mongo_uri, tlsCAFile=certifi.where())
+        kwargs = {}
+        if certifi is not None:
+            kwargs["tlsCAFile"] = certifi.where()
+        _client = MongoClient(mongo_uri, **kwargs)
     else:
         host = os.environ.get("MONGODB_HOST", "mongodb://localhost:27017")
         port = int(os.environ.get("MONGODB_PORT", "27017"))

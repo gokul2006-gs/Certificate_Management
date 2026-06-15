@@ -41,6 +41,8 @@ class CertificateGenerationJob(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     template_file = models.FileField(upload_to="certificate_templates/")
     issue_date = models.CharField(max_length=10)
+    start_date = models.CharField(max_length=50, blank=True, default="")
+    end_date = models.CharField(max_length=50, blank=True, default="")
     student_ids = models.JSONField(default=list)
     fields = models.JSONField(default=dict, blank=True)
     course_name = models.CharField(max_length=200, blank=True, default="")
