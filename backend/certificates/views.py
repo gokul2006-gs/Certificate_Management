@@ -839,14 +839,13 @@ def poll_generation_job(request, job_id):
             recent_created, recent_skipped = process_generation_job_batch(job, request)
         job.refresh_from_db()
     except Exception as exc:
+        job.status = CertificateGenerationJob.STATUS_FAILED
+        job.error_message = str(exc)
+        job.completed_at = timezone.now()
+        job.save(update_fields=["status", "error_message", "completed_at", "updated_at"])
         return Response(
-            {
-                "error": "Certificate generation failed while processing a batch.",
-                "detail": str(exc),
-                "job_id": str(job.id),
-                "status": CertificateGenerationJob.STATUS_FAILED,
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            serialize_generation_job(job, request, recent_created, recent_skipped),
+            status=status.HTTP_200_OK,
         )
 
     return Response(serialize_generation_job(job, request, recent_created, recent_skipped))

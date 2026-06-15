@@ -1,5 +1,7 @@
 import io
 import uuid
+from unittest.mock import patch
+
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
@@ -93,6 +95,30 @@ class CertificateGenerationTests(TestCase):
 
         # Verify a certificate model was actually created
         self.assertTrue(Certificate.objects.filter(student=self.student).exists())
+
+    def test_poll_generation_job_returns_failed_job_instead_of_500(self):
+        session = self.client.session
+        session["role"] = "admin"
+        session.save()
+
+        response = self.client.post(
+            "/api/certificates/generation-jobs/",
+            data={
+                "template_file": self.dummy_template,
+                "issue_date": "2026-06-11",
+                "student_ids": ["TSC001"]
+            }
+        )
+        self.assertEqual(response.status_code, 201)
+        job_id = response.json()["job_id"]
+
+        with patch("certificates.views.process_generation_job_batch", side_effect=RuntimeError("boom")):
+            response = self.client.get(f"/api/certificates/generation-jobs/{job_id}/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "failed")
+        self.assertIn("boom", data["error_message"])
 
     def test_bulk_upload_query_count(self):
         # Log in admin session to pass admin check
