@@ -121,10 +121,12 @@ def _load_script_font(size):
     if _SCRIPT_FONT_PATH is None:
         _SCRIPT_FONT_PATH = _resolve_font([
             # Prefer the most handwritten/calligraphic fonts available on the runtime.
-            "C:/Windows/Fonts/MTCORSVA.TTF",
             "C:/Windows/Fonts/PRISTINA.TTF",
+            "C:/Windows/Fonts/MTCORSVA.TTF",
             "C:/Windows/Fonts/FREESCPT.TTF",
             "C:/Windows/Fonts/FRSCRIPT.TTF",
+            "C:/Windows/Fonts/Brush Script MT.ttf",
+            "C:/Windows/Fonts/Segoe Script.ttf",
             "C:/Windows/Fonts/ITCEDSCR.TTF",
             "C:/Windows/Fonts/KUNSTLER.TTF",
             "C:/Windows/Fonts/VLADIMIR.TTF",
