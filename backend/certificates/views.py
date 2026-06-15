@@ -120,21 +120,24 @@ def _load_script_font(size):
     from PIL import ImageFont
     if _SCRIPT_FONT_PATH is None:
         _SCRIPT_FONT_PATH = _resolve_font([
-            # Prefer the most handwritten/calligraphic fonts available on the runtime.
-            "C:/Windows/Fonts/PRISTINA.TTF",
-            "C:/Windows/Fonts/MTCORSVA.TTF",
-            "C:/Windows/Fonts/FREESCPT.TTF",
-            "C:/Windows/Fonts/FRSCRIPT.TTF",
-            "C:/Windows/Fonts/Brush Script MT.ttf",
-            "C:/Windows/Fonts/Segoe Script.ttf",
-            "C:/Windows/Fonts/ITCEDSCR.TTF",
-            "C:/Windows/Fonts/KUNSTLER.TTF",
-            "C:/Windows/Fonts/VLADIMIR.TTF",
+            # Most elegant calligraphic/script fonts for professional certificates
+            # Prioritize Great Vibes and similar flowing cursive fonts
             os.path.join(settings.BASE_DIR, "assets", "fonts", "GreatVibes-Regular.ttf"),
             "C:/Windows/Fonts/GreatVibes-Regular.ttf",
             "C:/Windows/Fonts/GreatVibes.ttf",
+            "C:/Windows/Fonts/MTCORSVA.TTF",   # Monotype Corsiva - very elegant
+            "C:/Windows/Fonts/EDWARDIAN SCRIPT ITC.TTF",
+            "C:/Windows/Fonts/ITCEDSCR.TTF",
+            "C:/Windows/Fonts/PRISTINA.TTF",
+            "C:/Windows/Fonts/FRSCRIPT.TTF",   # French Script
+            "C:/Windows/Fonts/FREESCPT.TTF",
+            "C:/Windows/Fonts/KUNSTLER.TTF",   # Kunstler Script
+            "C:/Windows/Fonts/VLADIMIR.TTF",
+            "C:/Windows/Fonts/BrushScriptMT.ttf",
+            "C:/Windows/Fonts/BRUSHSCI.TTF",
+            "C:/Windows/Fonts/Segoe Script.ttf",
             "C:/Windows/Fonts/VIVALDII.TTF",
-            # Linux
+            # Linux alternatives
             "/usr/share/fonts/truetype/urw/URWChanceryL-MediItal.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSerifCondensed-Italic.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
