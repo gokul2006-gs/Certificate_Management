@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 from accounts.models import Student
 
@@ -20,6 +21,30 @@ class Certificate(models.Model):
 
     def __str__(self):
         return self.student.name
+
+
+class CertificateView(models.Model):
+    """Track certificate views by students"""
+    certificate = models.ForeignKey(
+        Certificate,
+        on_delete=models.CASCADE,
+        related_name="views"
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="certificate_views"
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default="")
+
+    class Meta:
+        unique_together = ('certificate', 'student')
+        ordering = ['-viewed_at']
+
+    def __str__(self):
+        return f"{self.student.name} viewed on {self.viewed_at}"
 
 
 class CertificateGenerationJob(models.Model):

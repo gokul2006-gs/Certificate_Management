@@ -6,6 +6,7 @@ const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
 const Students = lazy(() => import("../pages/Students"));
 const Courses = lazy(() => import("../pages/Courses"));
 const UploadCertificate = lazy(() => import("../pages/UploadCertificate"));
+const CertificateViews = lazy(() => import("../pages/CertificateViews"));
 const DatabaseConnection = lazy(() => import("../pages/DatabaseConnection"));
 const AdminLogin = lazy(() => import("../pages/AdminLogin"));
 const VerifyCertificate = lazy(() => import("../pages/VerifyCertificate"));
@@ -48,6 +49,12 @@ export const APP_ROUTES = [
   {
     path: "/upload-certificate",
     element: UploadCertificate,
+    access: "protected",
+    role: "admin",
+  },
+  {
+    path: "/certificate-views",
+    element: CertificateViews,
     access: "protected",
     role: "admin",
   },

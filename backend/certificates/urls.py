@@ -7,6 +7,7 @@ from .views import (
     download_certificate,
     download_all_certificates_zip,
     generate_certificates_from_template,
+    get_certificate_views,
     poll_generation_job,
     upload_certificate,
     verify_certificate,
@@ -63,8 +64,14 @@ urlpatterns = [
     ),
     
     path(
-    'view/<str:student_id>/',
-    view_certificate
-),
+        'view/<str:student_id>/',
+        view_certificate
+    ),
+    
+    path(
+        'views/<str:student_id>/',
+        get_certificate_views,
+        name="certificate-views",
+    ),
 
 ]

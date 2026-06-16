@@ -24,6 +24,7 @@ ADMIN_API_PREFIXES = (
     "/api/certificates/upload/",
     "/api/certificates/generate-from-template/",
     "/api/certificates/generation-jobs/",
+    "/api/certificates/views/",
 )
 
 

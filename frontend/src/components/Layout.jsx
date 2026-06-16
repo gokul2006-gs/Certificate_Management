@@ -6,6 +6,7 @@ import {
   BookOpen,
   ChevronDown,
   Database,
+  Eye,
   FileUp,
   GraduationCap,
   LogOut,
@@ -21,6 +22,7 @@ const adminLinks = [
   { to: "/students", label: "Students", icon: Users },
   { to: "/courses", label: "Courses", icon: BookOpen },
   { to: "/upload-certificate", label: "Certificates", icon: FileUp },
+  { to: "/certificate-views", label: "View Tracking", icon: Eye },
   { to: "/database-connection", label: "Database", icon: Database },
 ];
 
