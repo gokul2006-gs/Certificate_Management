@@ -1,10 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api, { formatApiError } from "../services/api";
 
 function Students() {
   const [students, setStudents] = useState([]);
+  const [searchVal, setSearchVal] = useState("");
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [form, setForm] = useState({ name: "", email: "" });
@@ -19,8 +20,17 @@ function Students() {
 
   useEffect(() => { load(); }, []);
 
+  // Debounce search input to avoid laggy keystroke response and multiple filter updates
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setQuery(searchVal);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchVal]);
+
   const filtered = useMemo(() => {
-    const t = query.toLowerCase();
+    const t = query.toLowerCase().trim();
+    if (!t) return students;
     return students.filter((s) =>
       [s.student_id, s.name, s.email].join(" ").toLowerCase().includes(t)
     );
@@ -107,7 +117,7 @@ function Students() {
           <div className="flex gap-3 items-center">
             <label className="relative">
               <Search className="absolute left-3.5 top-3 text-slate-400" size={15} />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search..."
+              <input value={searchVal} onChange={(e) => setSearchVal(e.target.value)} placeholder="Search..."
                 className="rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-slate-800 outline-none focus:border-primary-500 transition-all duration-200 w-56" />
             </label>
             <button onClick={deleteBulk} disabled={!selectedIds.length}

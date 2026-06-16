@@ -114,7 +114,7 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    student_id = str(request.data.get("student_id", "")).strip()
+    student_id = str(request.data.get("student_id", "")).strip().upper()
     password = str(request.data.get("password", "")).strip()
     if not student_id or not password:
         return Response(
@@ -123,7 +123,7 @@ def login_view(request):
         )
 
     try:
-        student = Student.objects.get(student_id__iexact=student_id)
+        student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
         return Response(
             {"error": "Student not found"},
@@ -181,7 +181,7 @@ def session_view(request):
 
     if role == "student":
         student_id = request.session.get("student_id")
-        if not student_id or not Student.objects.filter(student_id__iexact=student_id).exists():
+        if not student_id or not Student.objects.filter(student_id=student_id.upper()).exists():
             request.session.flush()
             return Response({
                 "authenticated": False,
@@ -215,11 +215,17 @@ def session_view(request):
 @api_view(["GET"])
 @admin_required
 def dashboard_stats(request):
-    return Response({
+    from django.core.cache import cache
+    cached = cache.get("dashboard_stats")
+    if cached:
+        return Response(cached)
+    data = {
         "students": Student.objects.count(),
         "courses": Course.objects.count(),
         "certificates": Certificate.objects.count(),
-    })
+    }
+    cache.set("dashboard_stats", data, 60)
+    return Response(data)
 
 
 @api_view(["GET"])
@@ -309,11 +315,6 @@ def upload_excel(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    created = []
-    updated = []
-    skipped = []
-    warnings = []
-
     # Optional student_id column (if Excel provides it).
     student_id_key = None
     for key in header_map.keys():
@@ -325,6 +326,38 @@ def upload_excel(request):
             student_id_key = key
             break
 
+    # Collect emails and student_ids to query in bulk
+    emails_in_excel = []
+    student_ids_in_excel = []
+    for row in rows[1:]:
+        if len(row) > header_map["email"] and row[header_map["email"]]:
+            emails_in_excel.append(str(row[header_map["email"]]).strip().lower())
+        if student_id_key and len(row) > header_map[student_id_key] and row[header_map[student_id_key]]:
+            student_ids_in_excel.append(str(row[header_map[student_id_key]]).strip().upper())
+
+    # Bulk query existing students by email and student_id
+    existing_by_email = {s.email: s for s in Student.objects.filter(email__in=emails_in_excel)}
+    existing_student_ids = set(Student.objects.filter(student_id__in=student_ids_in_excel).values_list("student_id", flat=True))
+
+    # Pre-calculate starting TSC number for auto-generation
+    last_student = (
+        Student.objects.filter(student_id__startswith="TSC")
+        .order_by("-student_id")
+        .first()
+    )
+    if last_student:
+        try:
+            next_number = int(last_student.student_id.replace("TSC", "")) + 1
+        except ValueError:
+            next_number = Student.objects.count() + 1
+    else:
+        next_number = 1
+
+    created = []
+    updated = []
+    skipped = []
+    warnings = []
+
     for row in rows[1:]:
         name_value = row[header_map["name"]] if header_map["name"] < len(row) else ""
         email_value = row[header_map["email"]] if header_map["email"] < len(row) else ""
@@ -335,15 +368,17 @@ def upload_excel(request):
             skipped.append({"email": email, "reason": "Missing name or email"})
             continue
 
-        existing = Student.objects.filter(email=email).first()
+        existing = existing_by_email.get(email)
         if existing:
             student_id_changed = False
             existing.name = name or existing.name
             if student_id_key and header_map[student_id_key] < len(row):
-                desired_student_id = str(row[header_map[student_id_key]] or "").strip()
+                desired_student_id = str(row[header_map[student_id_key]] or "").strip().upper()
                 if desired_student_id and desired_student_id != existing.student_id:
-                    if not Student.objects.filter(student_id=desired_student_id).exists():
+                    # check in memory and db
+                    if desired_student_id not in existing_student_ids and not Student.objects.filter(student_id=desired_student_id).exists():
                         existing.student_id = desired_student_id
+                        existing_student_ids.add(desired_student_id)
                         student_id_changed = True
                     else:
                         warnings.append({"email": email, "warning": f"student_id '{desired_student_id}' already exists; keeping existing id"})
@@ -356,15 +391,29 @@ def upload_excel(request):
 
         desired_student_id = None
         if student_id_key and header_map[student_id_key] < len(row):
-            desired_student_id = str(row[header_map[student_id_key]] or "").strip()
+            desired_student_id = str(row[header_map[student_id_key]] or "").strip().upper()
             if not desired_student_id:
                 desired_student_id = None
 
-        if desired_student_id and Student.objects.filter(student_id=desired_student_id).exists():
-            warnings.append({"email": email, "warning": f"student_id '{desired_student_id}' already exists; generating new id"})
-            desired_student_id = None
+        if desired_student_id:
+            # check in memory and db
+            if desired_student_id in existing_student_ids or Student.objects.filter(student_id=desired_student_id).exists():
+                warnings.append({"email": email, "warning": f"student_id '{desired_student_id}' already exists; generating new id"})
+                desired_student_id = None
 
-        final_student_id = desired_student_id or _next_student_id()
+        if desired_student_id:
+            final_student_id = desired_student_id
+            existing_student_ids.add(desired_student_id)
+        else:
+            # Generate one and ensure it doesn't conflict
+            while True:
+                candidate_id = f"TSC{next_number:03d}"
+                next_number += 1
+                if candidate_id not in existing_student_ids and not Student.objects.filter(student_id=candidate_id).exists():
+                    final_student_id = candidate_id
+                    existing_student_ids.add(candidate_id)
+                    break
+
         student = Student.objects.create(
             student_id=final_student_id,
             name=name,
@@ -389,7 +438,36 @@ def upload_excel(request):
 @admin_required
 def students(request):
     if request.method == "GET":
+        query_param = request.GET.get("q", "").strip()
         student_rows = Student.objects.order_by("student_id")
+        
+        if query_param:
+            from django.db.models import Q
+            student_rows = student_rows.filter(
+                Q(student_id__icontains=query_param) | Q(name__icontains=query_param) | Q(email__icontains=query_param)
+            )
+
+        page = request.GET.get("page")
+        page_size = request.GET.get("page_size", "50")
+        
+        if page:
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                start = (page - 1) * page_size
+                end = start + page_size
+                total_count = student_rows.count()
+                student_rows = student_rows[start:end]
+                data = StudentSerializer(student_rows, many=True).data
+                return Response({
+                    "results": data,
+                    "total": total_count,
+                    "page": page,
+                    "page_size": page_size
+                })
+            except ValueError:
+                pass
+
         return Response(StudentSerializer(student_rows, many=True).data)
 
     data = request.data.copy()
@@ -409,10 +487,10 @@ def students(request):
 @api_view(["GET", "PUT", "DELETE"])
 def student_detail(request, student_id):
     # Normalize student_id
-    student_id = student_id.strip()
+    student_id = student_id.strip().upper()
     
     try:
-        student = Student.objects.get(student_id__iexact=student_id)
+        student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -461,10 +539,10 @@ def bulk_delete_students(request):
 @api_view(["GET"])
 def student_profile(request, student_id):
     # Normalize student_id
-    student_id = student_id.strip()
+    student_id = student_id.strip().upper()
     
     try:
-        student = Student.objects.get(student_id__iexact=student_id)
+        student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -479,7 +557,8 @@ def student_profile(request, student_id):
 @api_view(["GET"])
 @admin_required
 def admin_login_logs(request):
-    logs = AdminLoginLog.objects.all()[:100]
+    # Fetch only required fields — no need to load entire documents
+    logs = AdminLoginLog.objects.only("username", "login_at", "logout_at", "ip_address").order_by("-login_at")[:20]
     data = [
         {
             "id": str(log.id),

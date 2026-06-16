@@ -273,3 +273,18 @@ LOGGING = {
         },
     },
 }
+
+# ── Performance: HTTP caching ─────────────────────────────────────────────────
+# Cache-Control max-age for WhiteNoise-served static files (1 year for hashed filenames)
+WHITENOISE_MAX_AGE = 31536000  # seconds
+# In-memory cache for session lookups (reduce repeated DB hits within the same process)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake-42",
+        "TIMEOUT": 300,  # 5 minutes
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+        },
+    }
+}

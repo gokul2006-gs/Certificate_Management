@@ -9,11 +9,12 @@ from .models import CertificateGenerationJob
 
 logger = logging.getLogger(__name__)
 
-JOB_BATCH_SIZE = 3
+JOB_BATCH_SIZE = 15
 MAX_SKIPPED_DETAILS = 200
 
 
 def generate_for_students(template_file, issue_date, students, request, fields=None, course_name=None):
+    from PIL import Image
     from .views import (
         _absolute_media_url,
         _create_certificate,
@@ -24,11 +25,19 @@ def generate_for_students(template_file, issue_date, students, request, fields=N
     created = []
     skipped = []
 
+    # Open template image once in memory to avoid repetitive disk/network read and decode overhead
+    try:
+        template_file.seek(0)
+        template_image = Image.open(template_file).convert("RGB")
+    except Exception as exc:
+        raise ValueError(f"Failed to open template image: {exc}")
+
     for student in students:
         try:
-            template_file.seek(0)
+            # Memory-copy the pre-opened template image (blazing fast C-level copy)
+            img_copy = template_image.copy()
             generated_file = _generated_certificate_file(
-                student, template_file, issue_date, fields=fields, course_name=course_name
+                student, img_copy, issue_date, fields=fields, course_name=course_name
             )
             certificate, verification_url = _create_certificate(
                 student,

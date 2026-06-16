@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, ChevronDown, ChevronRight, Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api, { formatApiError } from "../services/api";
@@ -23,6 +23,7 @@ const emptyForm = { course_name: "", duration: "", course_type: "Technical" };
 
 function Courses() {
   const [courses, setCourses] = useState([]);
+  const [searchVal, setSearchVal] = useState("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
@@ -43,8 +44,15 @@ function Courses() {
 
   useEffect(() => { loadCourses(); }, []);
 
+  // Debounce search to avoid re-rendering grouped table on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => setQuery(searchVal), 300);
+    return () => clearTimeout(handler);
+  }, [searchVal]);
+
   const filtered = useMemo(() => {
-    const term = query.toLowerCase();
+    const term = query.toLowerCase().trim();
+    if (!term) return courses;
     return courses.filter((c) =>
       [c.course_name, c.duration, c.course_type].join(" ").toLowerCase().includes(term)
     );
@@ -135,7 +143,7 @@ function Courses() {
         <p className="text-xs font-bold text-slate-400">{filtered.length} courses available</p>
         <label className="relative">
           <Search className="absolute left-3.5 top-3 text-slate-400" size={15} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
+          <input value={searchVal} onChange={(e) => setSearchVal(e.target.value)}
             placeholder="Search courses..."
             className="rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-slate-800 outline-none focus:border-primary-500 transition-all duration-200 w-64" />
         </label>

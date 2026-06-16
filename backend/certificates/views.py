@@ -42,19 +42,25 @@ def _verification_url(student_id):
 
 
 def _latest_certificate(student_id):
-    # Use case-insensitive lookup to handle any case variations
+    # Use exact case-sensitive lookup on student_id using the index
+    student_id = student_id.strip().upper()
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return None
+
     certificate = (
-        Certificate.objects.select_related("student")
-        .filter(student__student_id__iexact=student_id)
+        Certificate.objects.filter(student=student)
         .order_by("-created_at")
         .first()
     )
-    if certificate and certificate.qr_code:
-        try:
-            if not certificate.qr_code.storage.exists(certificate.qr_code.name):
+    if certificate:
+        certificate.student = student
+        if not certificate.qr_code:
+            try:
                 _generate_qr(certificate)
-        except Exception:
-            pass
+            except Exception:
+                pass
     return certificate
 
 
@@ -67,7 +73,7 @@ def _student_id_from_filename(file_name):
     return match.group(0).upper() if match else None
 
 
-def _generate_qr(certificate):
+def _generate_qr(certificate, save=True):
     verification_url = _verification_url(certificate.student.student_id)
     qr = qrcode.make(verification_url)
     buffer = BytesIO()
@@ -76,7 +82,7 @@ def _generate_qr(certificate):
     certificate.qr_code.save(
         f"{certificate.student.student_id}-{certificate.id}.png",
         File(buffer),
-        save=True,
+        save=save,
     )
     return verification_url
 
@@ -89,7 +95,8 @@ def _create_certificate(student, certificate_file, file_name=None, course_name="
         certificate_file,
         save=True,
     )
-    verification_url = _generate_qr(certificate)
+    verification_url = _generate_qr(certificate, save=False)
+    certificate.save()
     return certificate, verification_url
 
 
@@ -404,7 +411,10 @@ def _format_certificate_date(value):
 def _generated_certificate_file(student, template_file, issue_date, fields=None, course_name=None):
     from PIL import Image, ImageDraw
 
-    template = Image.open(template_file).convert("RGB")
+    if isinstance(template_file, Image.Image):
+        template = template_file
+    else:
+        template = Image.open(template_file).convert("RGB")
     width, height = template.size
     draw = ImageDraw.Draw(template)
     verification_url = _verification_url(student.student_id)
@@ -506,12 +516,7 @@ def _download_url(request, student_id):
 
 
 def _file_available(file_field):
-    if not file_field:
-        return False
-    try:
-        return file_field.storage.exists(file_field.name)
-    except (OSError, ValueError):
-        return False
+    return bool(file_field and file_field.name)
 
 
 def _certificate_response(request, certificate):
@@ -888,7 +893,7 @@ def view_certificate(request, student_id):
         **_certificate_response(request, certificate),
         "created_at": certificate.created_at,
         "history": CertificateSerializer(
-            Certificate.objects.filter(student=certificate.student).order_by("-created_at"),
+            Certificate.objects.filter(student=certificate.student).select_related("student").order_by("-created_at"),
             many=True,
             context={"request": request},
         ).data,

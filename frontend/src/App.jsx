@@ -1,18 +1,25 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Suspense } from "react";
 
 import ProtectedRoute from "./navigation/ProtectedRoute";
+import RouteLoading from "./navigation/RouteLoading";
 import { APP_ROUTES } from "./navigation/appRoutes";
 
 function wrapRoute(route) {
   const Page = route.element;
+  const pageContent = (
+    <Suspense fallback={<RouteLoading message="Loading page..." />}>
+      <Page />
+    </Suspense>
+  );
 
   if (route.access === "open" || route.access === "guest") {
-    return <Page />;
+    return pageContent;
   }
 
   return (
     <ProtectedRoute role={route.role}>
-      <Page />
+      {pageContent}
     </ProtectedRoute>
   );
 }

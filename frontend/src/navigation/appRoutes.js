@@ -1,12 +1,14 @@
-import StudentLogin from "../pages/StudentLogin";
-import StudentDashboard from "../pages/StudentDashboard";
-import AdminDashboard from "../pages/AdminDashboard";
-import Students from "../pages/Students";
-import Courses from "../pages/Courses";
-import UploadCertificate from "../pages/UploadCertificate";
-import DatabaseConnection from "../pages/DatabaseConnection";
-import AdminLogin from "../pages/AdminLogin";
-import VerifyCertificate from "../pages/VerifyCertificate";
+import { lazy } from "react";
+
+const StudentLogin = lazy(() => import("../pages/StudentLogin"));
+const StudentDashboard = lazy(() => import("../pages/StudentDashboard"));
+const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
+const Students = lazy(() => import("../pages/Students"));
+const Courses = lazy(() => import("../pages/Courses"));
+const UploadCertificate = lazy(() => import("../pages/UploadCertificate"));
+const DatabaseConnection = lazy(() => import("../pages/DatabaseConnection"));
+const AdminLogin = lazy(() => import("../pages/AdminLogin"));
+const VerifyCertificate = lazy(() => import("../pages/VerifyCertificate"));
 
 export const APP_ROUTES = [
   {
