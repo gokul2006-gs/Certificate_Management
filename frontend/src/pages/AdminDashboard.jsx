@@ -99,7 +99,13 @@ function AdminDashboard() {
   };
 
   const cards = [
-    { label: "Total Registered Students", value: stats.students, icon: Users, color: "bg-primary-50 text-primary-600 border-primary-100" },
+    {
+      label: "Total Registered Students",
+      value: stats.students,
+      icon: Users,
+      color: "bg-primary-50 text-primary-600 border-primary-100",
+      to: "/students",
+    },
     { label: "Enrolled Courses", value: stats.courses, icon: BookOpen, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
     { label: "Issued Certificates", value: stats.certificates, icon: FileText, color: "bg-amber-50 text-amber-600 border-amber-105" },
   ];
@@ -126,10 +132,12 @@ function AdminDashboard() {
       <section className="grid gap-6 md:grid-cols-3 animate-scale-in">
         {cards.map((card, index) => {
           const Icon = card.icon;
+          const Container = card.to ? Link : "div";
           return (
-            <div
+            <Container
+              {...(card.to ? { to: card.to } : {})}
               key={card.label}
-              className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out border-l-4 border-l-primary-500"
+              className={`rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm transition-all duration-300 ease-out border-l-4 border-l-primary-500 ${card.to ? "cursor-pointer hover:bg-slate-50 hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1" : "hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1"}`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl border  hover:scale-[1.05] transition-transform duration-250">
@@ -137,7 +145,7 @@ function AdminDashboard() {
               </div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{card.label}</p>
               <p className="mt-1 text-3xl font-extrabold tracking-tight text-slate-800 font-display">{card.value}</p>
-            </div>
+            </Container>
           );
         })}
       </section>
