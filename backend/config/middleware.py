@@ -22,19 +22,48 @@ class SimpleCorsMiddleware:
             response = self.get_response(request)
 
         origin = request.headers.get("Origin")
-        allowed_origins = getattr(settings, "FRONTEND_ALLOWED_ORIGINS", [])
-        is_allowed_origin = origin in allowed_origins or (
-            settings.DEBUG
-            and origin
-            and PRIVATE_NETWORK_ORIGIN.match(origin)
-        )
-        if is_allowed_origin:
+        if origin and self._origin_allowed(origin):
             response["Access-Control-Allow-Origin"] = origin
             response["Access-Control-Allow-Credentials"] = "true"
-            response["Access-Control-Allow-Headers"] = "content-type, x-csrftoken"
+            response["Access-Control-Allow-Headers"] = "content-type, x-csrftoken, authorization"
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response["Vary"] = "Origin"
 
         return response
+
+    def _origin_allowed(self, origin):
+        """Comprehensive origin checking using same logic as CorsExceptionMiddleware"""
+        if not origin:
+            return False
+
+        # Check if all origins allowed
+        if getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False):
+            return True
+
+        # Normalize and check against exact allowed origins
+        normalized = origin.rstrip("/")
+        allowed = {value.rstrip("/") for value in getattr(settings, "CORS_ALLOWED_ORIGINS", [])}
+        if normalized in allowed:
+            return True
+
+        # Check against regex patterns
+        for pattern in getattr(settings, "CORS_ALLOWED_ORIGIN_REGEXES", []):
+            if re.match(pattern, origin):
+                return True
+
+        # Wildcard patterns for common cases
+        if origin.startswith("https://") and origin.endswith(".vercel.app"):
+            return True
+        if origin.startswith("https://") and origin.endswith(".onrender.com"):
+            return True
+        if origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:"):
+            return True
+
+        # Check frontend allowed origins list (for exact matches)
+        if origin in getattr(settings, "FRONTEND_ALLOWED_ORIGINS", []):
+            return True
+
+        return False
 
 
 class CorsExceptionMiddleware:
