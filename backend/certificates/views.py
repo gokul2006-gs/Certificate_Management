@@ -34,7 +34,17 @@ STUDENT_ID_PATTERN = re.compile(r"TSC\d+", re.IGNORECASE)
 def _absolute_media_url(request, file_field):
     if not file_field:
         return None
-    return request.build_absolute_uri(file_field.url)
+    # Some callers (management scripts or background workers) may pass None
+    # for `request`. Fall back to configured FRONTEND_BASE_URL when that
+    # happens or if `build_absolute_uri` is unavailable.
+    try:
+        if request is None:
+            base = settings.FRONTEND_BASE_URL.rstrip("/")
+            return f"{base}{file_field.url}"
+        return request.build_absolute_uri(file_field.url)
+    except Exception:
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        return f"{base}{file_field.url}"
 
 
 def _verification_url(student_id):
@@ -510,9 +520,16 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
 
 
 def _download_url(request, student_id):
-    return request.build_absolute_uri(
-        reverse("certificate-download", kwargs={"student_id": student_id})
-    )
+    try:
+        if request is None:
+            base = settings.FRONTEND_BASE_URL.rstrip("/")
+            return f"{base}{reverse('certificate-download', kwargs={'student_id': student_id})}"
+        return request.build_absolute_uri(
+            reverse("certificate-download", kwargs={"student_id": student_id})
+        )
+    except Exception:
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        return f"{base}{reverse('certificate-download', kwargs={'student_id': student_id})}"
 
 
 def _file_available(file_field):
