@@ -423,6 +423,12 @@ def upload_excel(request):
         )
         created.append(student.student_id)
 
+    # Invalidate cached dashboard stats so the dashboard reflects the latest student count
+    try:
+        cache.delete("dashboard_stats")
+    except Exception:
+        pass
+
     return Response({
         "message": "Students uploaded successfully",
         "created_count": len(created),
