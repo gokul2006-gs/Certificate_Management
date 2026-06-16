@@ -1104,57 +1104,57 @@ def download_certificate(request, student_id):
 def get_certificate_views(request, student_id):
     """Get list of students who viewed a specific certificate"""
     student_id = student_id.strip()
-    
+
     try:
         student = Student.objects.get(student_id=student_id)
     except Student.DoesNotExist:
         return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
-    
+
     certificate = _latest_certificate(student_id)
     if not certificate:
         return Response({"error": "No certificate found for this student"}, status=status.HTTP_404_NOT_FOUND)
-    
-    # Get all students
-    all_students = Student.objects.all().order_by("student_id")
-    
-    # Get students who have viewed this certificate
-    views = CertificateView.objects.filter(certificate=certificate).select_related('student')
-    viewed_student_ids = set(view.student.student_id for view in views)
-    
-    viewed_students = []
-    not_viewed_students = []
-    
-    for s in all_students:
-        if s.student_id in viewed_student_ids:
-            view = views.filter(student=s).first()
-            viewed_students.append({
+
+    try:
+        all_students = Student.objects.all().order_by("student_id")
+        views = CertificateView.objects.filter(certificate=certificate).select_related("student")
+        view_map = {view.student.student_id: view for view in views}
+
+        viewed_students = []
+        not_viewed_students = []
+
+        for s in all_students:
+            view = view_map.get(s.student_id)
+            row = {
                 "student_id": s.student_id,
                 "name": s.name,
-                "course_name": s.course_name,
+                "course_name": certificate.course_name or "",
                 "viewed_at": view.viewed_at if view else None,
                 "ip_address": view.ip_address if view else None,
-            })
-        else:
-            not_viewed_students.append({
-                "student_id": s.student_id,
-                "name": s.name,
-                "course_name": s.course_name,
-                "viewed_at": None,
-                "ip_address": None,
-            })
-    
-    return Response({
-        "certificate_id": certificate.id,
-        "issued_student": {
-            "student_id": student.student_id,
-            "name": student.name,
-        },
-        "total_students": len(all_students),
-        "viewed_count": len(viewed_students),
-        "not_viewed_count": len(not_viewed_students),
-        "viewed_students": viewed_students,
-        "not_viewed_students": not_viewed_students,
-    })
+            }
+
+            if view:
+                viewed_students.append(row)
+            else:
+                not_viewed_students.append(row)
+
+        return Response({
+            "certificate_id": certificate.id,
+            "issued_student": {
+                "student_id": student.student_id,
+                "name": student.name,
+            },
+            "total_students": len(all_students),
+            "viewed_count": len(viewed_students),
+            "not_viewed_count": len(not_viewed_students),
+            "viewed_students": viewed_students,
+            "not_viewed_students": not_viewed_students,
+        })
+    except Exception as exc:
+        logger.exception("Error fetching certificate views for %s", student_id)
+        return Response(
+            {"error": "Unable to load certificate views"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @api_view(["GET"])
