@@ -420,6 +420,15 @@ def _format_certificate_date(value):
     return format_one(text)
 
 
+def _format_certificate_person_name(value):
+    text = str(value or "").strip()
+    return re.sub(
+        r"[A-Za-z]+",
+        lambda match: match.group(0)[:1].upper() + match.group(0)[1:].lower(),
+        text,
+    )
+
+
 def _generated_certificate_file(student, template_file, issue_date, fields=None, course_name=None):
     from PIL import Image, ImageDraw
 
@@ -461,7 +470,7 @@ def _generated_certificate_file(student, template_file, issue_date, fields=None,
 
     # --- Student Name (elegant script, clear space below banner) ---
     _draw_centered_single_line(
-        draw, student.name,
+        draw, _format_certificate_person_name(student.name),
         name_box,
         max(72, int(width * 0.070)), text_color,
         font_loader=_load_script_font,

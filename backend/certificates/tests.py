@@ -11,7 +11,11 @@ from django.urls import reverse
 from accounts.models import Student
 from courses.models import Course
 from certificates.models import CertificateGenerationJob, Certificate
-from certificates.views import _format_certificate_date, _resolve_field_box
+from certificates.views import (
+    _format_certificate_date,
+    _format_certificate_person_name,
+    _resolve_field_box,
+)
 
 
 class CertificateGenerationTests(TestCase):
@@ -19,6 +23,12 @@ class CertificateGenerationTests(TestCase):
         self.assertEqual(
             _format_certificate_date("2026-06-01 to 2026-06-30"),
             "1st June 2026 to 30th June 2026",
+        )
+
+    def test_format_certificate_person_name_capitalizes_each_name_part(self):
+        self.assertEqual(
+            _format_certificate_person_name("  john DOE mary-jane o'neil  "),
+            "John Doe Mary-Jane O'Neil",
         )
 
     def test_resolve_field_box_accepts_fraction_and_percentage_coordinates(self):
