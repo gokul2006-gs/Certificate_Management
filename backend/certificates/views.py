@@ -29,7 +29,9 @@ from .services import (
 
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
-STUDENT_ID_PATTERN = re.compile(r"TSC\d+", re.IGNORECASE)
+# Updated pattern to match various student ID formats: TSC001, U25PG507CAP002, etc.
+# Matches alphanumeric characters at the beginning of filename (before hyphen/underscore)
+STUDENT_ID_PATTERN = re.compile(r"^[A-Z0-9]+(?=[-_])", re.IGNORECASE)
 logger = logging.getLogger(__name__)
 
 
