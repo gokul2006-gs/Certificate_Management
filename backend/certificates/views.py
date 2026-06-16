@@ -671,8 +671,12 @@ def bulk_upload_certificates(request):
                 student_id = _student_id_from_filename(entry.filename)
                 if student_id:
                     student_ids_to_query.add(student_id)
-        except zipfile.BadZipFile:
-            return Response({"error": "Invalid ZIP file"}, status=status.HTTP_400_BAD_REQUEST)
+        except zipfile.BadZipFile as e:
+            logger.error(f"Invalid ZIP file: {e}")
+            return Response({"error": f"Invalid ZIP file: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error reading ZIP file: {e}")
+            return Response({"error": f"Error reading ZIP file: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Perform a single bulk query to fetch all matching student records
     student_map = {}
@@ -684,48 +688,63 @@ def bulk_upload_certificates(request):
     skipped = []
 
     def process_file(file_name, file_content):
-        if not _is_allowed_file(file_name):
-            skipped.append({"file": file_name, "reason": "Unsupported file type"})
-            return
-
-        student_id = _student_id_from_filename(file_name)
-        if not student_id:
-            skipped.append({"file": file_name, "reason": "No student ID found in filename"})
-            return
-
-        student = student_map.get(student_id)
-        if not student:
-            skipped.append({"file": file_name, "reason": f"{student_id} not found"})
-            return
-
-        certificate, verification_url = _create_certificate(
-            student,
-            file_content,
-            os.path.basename(file_name),
-        )
-        created.append({
-            "student_id": student.student_id,
-            "student_name": student.name,
-            "file": os.path.basename(file_name),
-            "certificate": _absolute_media_url(request, certificate.certificate_file),
-            "download_url": _download_url(request, certificate.student.student_id),
-            "qr": _absolute_media_url(request, certificate.qr_code),
-            "verification_url": _verification_url(certificate.student.student_id),
-        })
-
-    for uploaded_file in uploaded_files:
-        process_file(uploaded_file.name, uploaded_file)
-
-    if archive:
         try:
-            for entry in archive.infolist():
-                if entry.is_dir():
-                    continue
-                with archive.open(entry) as source:
-                    content = ContentFile(source.read(), name=os.path.basename(entry.filename))
-                    process_file(entry.filename, content)
-        finally:
-            archive.close()
+            if not _is_allowed_file(file_name):
+                skipped.append({"file": file_name, "reason": "Unsupported file type"})
+                return
+
+            student_id = _student_id_from_filename(file_name)
+            if not student_id:
+                skipped.append({"file": file_name, "reason": "No student ID found in filename"})
+                return
+
+            student = student_map.get(student_id)
+            if not student:
+                skipped.append({"file": file_name, "reason": f"{student_id} not found"})
+                return
+
+            certificate, verification_url = _create_certificate(
+                student,
+                file_content,
+                os.path.basename(file_name),
+            )
+            created.append({
+                "student_id": student.student_id,
+                "student_name": student.name,
+                "file": os.path.basename(file_name),
+                "certificate": _absolute_media_url(request, certificate.certificate_file),
+                "download_url": _download_url(request, certificate.student.student_id),
+                "qr": _absolute_media_url(request, certificate.qr_code),
+                "verification_url": _verification_url(certificate.student.student_id),
+            })
+        except Exception as e:
+            logger.exception(f"Error processing file {file_name}")
+            skipped.append({"file": file_name, "reason": f"Error: {str(e)}"})
+
+    try:
+        for uploaded_file in uploaded_files:
+            process_file(uploaded_file.name, uploaded_file)
+
+        if archive:
+            try:
+                for entry in archive.infolist():
+                    if entry.is_dir():
+                        continue
+                    try:
+                        with archive.open(entry) as source:
+                            content = ContentFile(source.read(), name=os.path.basename(entry.filename))
+                            process_file(entry.filename, content)
+                    except Exception as e:
+                        logger.exception(f"Error processing zip entry {entry.filename}")
+                        skipped.append({"file": entry.filename, "reason": f"Error: {str(e)}"})
+            finally:
+                archive.close()
+    except Exception as e:
+        logger.exception("Fatal error during bulk upload")
+        return Response(
+            {"error": f"Bulk upload failed: {str(e)}", "created_count": len(created), "skipped_count": len(skipped), "created": created, "skipped": skipped},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response({
         "message": "Bulk certificate upload completed",
