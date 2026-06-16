@@ -82,8 +82,9 @@ FRONTEND_ALLOWED_ORIGINS = list(dict.fromkeys([
 
 CSRF_TRUSTED_ORIGINS = FRONTEND_ALLOWED_ORIGINS
 
-CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
-SESSION_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
+# Allow cross-site requests from the frontend, especially during local development
+CSRF_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = False
