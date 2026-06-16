@@ -10,6 +10,8 @@ function normalizeApiBaseUrl(url) {
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
+const DEFAULT_PRODUCTION_API_URL = "https://smart-certificate-management-and.onrender.com/api";
+
 function resolveApiBaseUrl() {
   const configuredApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (configuredApiUrl) {
@@ -17,8 +19,7 @@ function resolveApiBaseUrl() {
   }
 
   if (import.meta.env.PROD) {
-    // Fall back to same-origin /api when no backend URL is configured.
-    return normalizeApiBaseUrl(window.location.origin);
+    return DEFAULT_PRODUCTION_API_URL;
   }
 
   const apiPort = import.meta.env.VITE_API_PORT || "8000";
