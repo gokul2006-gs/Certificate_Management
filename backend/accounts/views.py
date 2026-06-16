@@ -17,6 +17,7 @@ from django.utils import timezone
 from certificates.models import Certificate
 from courses.models import Course
 from .models import AdminLoginLog, Student
+from django.core.cache import cache
 from .permissions import admin_required, is_admin, is_student
 from .serializers import StudentSerializer
 
@@ -505,6 +506,11 @@ def student_detail(request, student_id):
 
     if request.method == "DELETE":
         student.delete()
+        # Invalidate cached dashboard stats so counts update immediately
+        try:
+            cache.delete("dashboard_stats")
+        except Exception:
+            pass
         return Response({"message": "Student deleted"})
 
     if request.method == "PUT":
@@ -528,6 +534,11 @@ def bulk_delete_students(request):
     students_qs = Student.objects.filter(student_id__in=student_ids)
     deleted_count = students_qs.count()
     students_qs.delete()
+    # Invalidate cached dashboard stats
+    try:
+        cache.delete("dashboard_stats")
+    except Exception:
+        pass
     return Response(
         {
             "message": "Students deleted",
