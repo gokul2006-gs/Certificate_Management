@@ -12,7 +12,7 @@ export default function CertificateViews() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch students on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const loadStudents = async () => {
       try {
         const response = await api.get("/accounts/students/");
