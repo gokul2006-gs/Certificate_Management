@@ -120,6 +120,20 @@ class CertificateGenerationTests(TestCase):
         self.assertEqual(data["status"], "failed")
         self.assertIn("boom", data["error_message"])
 
+    def test_poll_generation_job_returns_failed_payload_when_lookup_errors(self):
+        session = self.client.session
+        session["role"] = "admin"
+        session.save()
+
+        job_id = uuid.uuid4()
+        with patch("certificates.views.CertificateGenerationJob.objects.get", side_effect=RuntimeError("db down")):
+            response = self.client.get(f"/api/certificates/generation-jobs/{job_id}/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "failed")
+        self.assertIn("Failed to load generation job", data["error_message"])
+
     def test_bulk_upload_query_count(self):
         # Log in admin session to pass admin check
         session = self.client.session
@@ -187,4 +201,3 @@ class CertificateGenerationTests(TestCase):
 
         # Verify a certificate model was created and file is generated
         self.assertTrue(Certificate.objects.filter(student=self.student).exists())
-

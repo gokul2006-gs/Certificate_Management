@@ -846,6 +846,24 @@ def poll_generation_job(request, job_id):
         job = CertificateGenerationJob.objects.get(pk=job_id)
     except CertificateGenerationJob.DoesNotExist:
         return Response({"error": "Generation job not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as exc:
+        logger.exception("Failed to load certificate generation job %s", job_id)
+        return Response(
+            {
+                "job_id": str(job_id),
+                "status": CertificateGenerationJob.STATUS_FAILED,
+                "total_count": 0,
+                "processed_count": 0,
+                "created_count": 0,
+                "skipped_count": 0,
+                "progress_percent": 0,
+                "error_message": f"Failed to load generation job: {exc}",
+                "recent_created": [],
+                "recent_skipped": [],
+                "skipped": [],
+            },
+            status=status.HTTP_200_OK,
+        )
 
     recent_created = []
     recent_skipped = []
@@ -887,7 +905,26 @@ def poll_generation_job(request, job_id):
             status=status.HTTP_200_OK,
         )
 
-    return Response(serialize_generation_job(job, request, recent_created, recent_skipped))
+    try:
+        return Response(serialize_generation_job(job, request, recent_created, recent_skipped))
+    except Exception as exc:
+        logger.exception("Failed to serialize certificate generation job %s", job_id)
+        return Response(
+            {
+                "job_id": str(job.id),
+                "status": CertificateGenerationJob.STATUS_FAILED,
+                "total_count": len(job.student_ids or []),
+                "processed_count": job.processed_count,
+                "created_count": job.created_count,
+                "skipped_count": job.skipped_count,
+                "progress_percent": job.progress_percent,
+                "error_message": f"Failed to report generation job status: {exc}",
+                "recent_created": recent_created,
+                "recent_skipped": recent_skipped,
+                "skipped": [],
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @api_view(["POST"])

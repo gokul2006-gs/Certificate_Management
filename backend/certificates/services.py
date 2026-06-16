@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.db import transaction
 from django.utils import timezone
@@ -9,7 +10,15 @@ from .models import CertificateGenerationJob
 
 logger = logging.getLogger(__name__)
 
-JOB_BATCH_SIZE = 15
+
+def _positive_int_env(name, default):
+    try:
+        return max(1, int(os.environ.get(name, str(default))))
+    except (TypeError, ValueError):
+        return default
+
+
+JOB_BATCH_SIZE = _positive_int_env("CERTIFICATE_JOB_BATCH_SIZE", 1)
 MAX_SKIPPED_DETAILS = 200
 
 
