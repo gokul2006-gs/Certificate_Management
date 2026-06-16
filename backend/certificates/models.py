@@ -40,7 +40,7 @@ class CertificateGenerationJob(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     template_file = models.FileField(upload_to="certificate_templates/")
-    issue_date = models.CharField(max_length=10)
+    issue_date = models.CharField(max_length=50)
     start_date = models.CharField(max_length=50, blank=True, default="")
     end_date = models.CharField(max_length=50, blank=True, default="")
     student_ids = models.JSONField(default=list)

@@ -72,7 +72,7 @@ class CertificateGenerationTests(TestCase):
             "/api/certificates/generation-jobs/",
             data={
                 "template_file": self.dummy_template,
-                "issue_date": "2026-06-11",
+                "issue_date": "2026-06-01 to 2026-06-30",
                 "student_ids": ["TSC001"]
             }
         )
@@ -187,5 +187,4 @@ class CertificateGenerationTests(TestCase):
 
         # Verify a certificate model was created and file is generated
         self.assertTrue(Certificate.objects.filter(student=self.student).exists())
-
 

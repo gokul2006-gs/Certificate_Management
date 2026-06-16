@@ -3,6 +3,7 @@ import re
 import zipfile
 import qrcode
 import functools
+import logging
 
 from io import BytesIO
 
@@ -29,6 +30,7 @@ from .services import (
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 STUDENT_ID_PATTERN = re.compile(r"TSC\d+", re.IGNORECASE)
+logger = logging.getLogger(__name__)
 
 
 def _absolute_media_url(request, file_field):
@@ -855,12 +857,33 @@ def poll_generation_job(request, job_id):
             recent_created, recent_skipped = process_generation_job_batch(job, request)
         job.refresh_from_db()
     except Exception as exc:
+        logger.exception("Certificate generation job poll failed for %s", job_id)
         job.status = CertificateGenerationJob.STATUS_FAILED
         job.error_message = str(exc)
         job.completed_at = timezone.now()
-        job.save(update_fields=["status", "error_message", "completed_at", "updated_at"])
+        try:
+            job.save(update_fields=["status", "error_message", "completed_at", "updated_at"])
+        except Exception:
+            logger.exception("Failed to persist failed status for certificate generation job %s", job_id)
+        try:
+            payload = serialize_generation_job(job, request, recent_created, recent_skipped)
+        except Exception:
+            logger.exception("Failed to serialize failed certificate generation job %s", job_id)
+            payload = {
+                "job_id": str(job.id),
+                "status": CertificateGenerationJob.STATUS_FAILED,
+                "total_count": len(job.student_ids or []),
+                "processed_count": job.processed_count,
+                "created_count": job.created_count,
+                "skipped_count": job.skipped_count,
+                "progress_percent": job.progress_percent,
+                "error_message": str(exc),
+                "recent_created": recent_created,
+                "recent_skipped": recent_skipped,
+                "skipped": [],
+            }
         return Response(
-            serialize_generation_job(job, request, recent_created, recent_skipped),
+            payload,
             status=status.HTTP_200_OK,
         )
 
