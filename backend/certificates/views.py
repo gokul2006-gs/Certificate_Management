@@ -1058,10 +1058,9 @@ def download_all_certificates_zip(request):
         for cert in certificates:
             if cert.certificate_file and _file_available(cert.certificate_file):
                 try:
-                    # Read certificate file
-                    cert.certificate_file.open('rb')
-                    file_data = cert.certificate_file.read()
-                    cert.certificate_file.close()
+                    # Read certificate file correctly using context manager
+                    with cert.certificate_file.open('rb') as f:
+                        file_data = f.read()
                     
                     # Create filename: StudentID-StudentName-certificate.png
                     safe_name = cert.student.name.replace(' ', '_').replace('/', '_')
@@ -1073,6 +1072,7 @@ def download_all_certificates_zip(request):
                     
                 except Exception as e:
                     # Skip files that can't be read
+                    logger.warning(f"Failed to add certificate for {cert.student.student_id}: {e}")
                     continue
         
         if added_count == 0:
