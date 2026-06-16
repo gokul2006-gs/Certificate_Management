@@ -65,9 +65,9 @@ function AdminDashboard() {
       const updatedCount = response.data.updated_count ?? 0;
       const warningsCount = response.data.warnings?.length ?? 0;
       setMessage(
-        \\ students created, \ updated.\ +
-          (warningsCount ? \ Warnings: \.\ : "") +
-          \ Default password: \\
+        `${createdCount} students created, ${updatedCount} updated.` +
+          (warningsCount ? ` Warnings: ${warningsCount}.` : "") +
+          (response.data.default_password ? ` Default password: ${response.data.default_password}` : "")
       );
       setFile(null);
       await loadStats();
@@ -88,7 +88,7 @@ function AdminDashboard() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', \ll_certificates_\.zip\);
+      link.setAttribute('download', 'all_certificates.zip');
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -130,9 +130,9 @@ function AdminDashboard() {
             <div
               key={card.label}
               className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-lg hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out border-l-4 border-l-primary-500"
-              style={{ animationDelay: \\ms\ }}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className={\mb-4 grid h-10 w-10 place-items-center rounded-xl border \ hover:scale-[1.05] transition-transform duration-250\}>
+              <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl border  hover:scale-[1.05] transition-transform duration-250">
                 <Icon size={18} />
               </div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{card.label}</p>
