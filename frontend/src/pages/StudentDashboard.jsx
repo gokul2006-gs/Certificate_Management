@@ -47,9 +47,10 @@ function StudentDashboard() {
   }
 
   const isValid = certificateStatus === "VALID";
-  const handleQrClick = (e) => {
-    e.preventDefault();
-    alert("📱 Please scan the QR code\n\nUse your phone camera or QR scanner app to scan this code and verify the certificate.\n\nDo not click on it - scanning is required!");
+  const handleQrClick = () => {
+    alert(
+      "📱 Please scan the QR code.\n\nUse your phone camera or QR scanner app to verify the certificate.\n\nClicking the QR code is disabled."
+    );
   };
 
 
@@ -114,26 +115,33 @@ function StudentDashboard() {
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600">
               <QrCode size={20} />
             </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Verification QR</h3>
-              <p className="text-xs text-slate-400">Scan to view certificate and details</p>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+                Verification QR
+              </h3>
+              <p className="text-xs text-slate-400">
+                Scan to view certificate and details
+              </p>
             </div>
           </div>
 
           {certificate ? (
             <div className="text-center">
               <div className="mb-5">
-                <span className="inline-flex rounded-full bg-emerald-100/70 border border-emerald-200/50 px-3 py-1 text-xs font-bold text-emerald-800">
-                  ACTIVE & VALID
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${isValid
+                      ? "bg-emerald-100/70 border-emerald-200/50 text-emerald-800"
+                      : "bg-amber-100 border-amber-200 text-amber-800"
+                    }`}
+                >
+                  {certificateStatus}
                 </span>
               </div>
 
               {certificate.qr && (
-                <a
-                  href={certificate.verification_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mx-auto block w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition duration-300 hover:scale-[1.05] hover:shadow-lg"
+                <div
+                  onClick={handleQrClick}
+                  className="mx-auto w-full max-w-[240px] cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition duration-300 hover:scale-[1.05] hover:shadow-lg"
                 >
                   <img
                     src={certificate.qr}
@@ -156,8 +164,8 @@ function StudentDashboard() {
             </div>
           )}
         </aside>
-      </div>
-    </Layout>
+      </div >
+    </Layout >
   );
 }
 
