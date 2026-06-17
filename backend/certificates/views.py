@@ -1116,8 +1116,15 @@ def get_certificate_views(request, student_id):
 
     try:
         all_students = Student.objects.all().order_by("student_id")
-        views = CertificateView.objects.filter(certificate=certificate).select_related("student")
-        view_map = {view.student.student_id: view for view in views}
+        
+        # Check if CertificateView table exists (might not if migrations haven't run)
+        try:
+            views = CertificateView.objects.filter(certificate=certificate).select_related("student")
+            view_map = {view.student.student_id: view for view in views}
+        except Exception as view_exc:
+            logger.warning(f"CertificateView table might not exist yet: {view_exc}")
+            # Return empty view data if table doesn't exist
+            view_map = {}
 
         viewed_students = []
         not_viewed_students = []
@@ -1152,7 +1159,7 @@ def get_certificate_views(request, student_id):
     except Exception as exc:
         logger.exception("Error fetching certificate views for %s", student_id)
         return Response(
-            {"error": "Unable to load certificate views"},
+            {"error": "Unable to load certificate views. Please ensure database migrations have been run."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
