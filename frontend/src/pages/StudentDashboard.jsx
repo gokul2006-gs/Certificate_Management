@@ -47,6 +47,11 @@ function StudentDashboard() {
   }
 
   const isValid = certificateStatus === "VALID";
+  const handleQrClick = (e) => {
+    e.preventDefault();
+    alert("📱 Please scan the QR code\n\nUse your phone camera or QR scanner app to scan this code and verify the certificate.\n\nDo not click on it - scanning is required!");
+  };
+
 
   return (
     <Layout role="student">
@@ -135,7 +140,7 @@ function StudentDashboard() {
                     alt="Certificate QR code"
                     className="aspect-square w-full object-contain"
                   />
-                </a>
+                </div>
               )}
 
               <div className="mt-6 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
