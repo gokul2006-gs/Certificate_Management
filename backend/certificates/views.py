@@ -19,7 +19,13 @@ from rest_framework.response import Response
 
 from accounts.models import Student
 from accounts.permissions import admin_required, is_admin, is_student
-from .models import Certificate, CertificateGenerationJob, CertificateView
+from .models import Certificate, CertificateGenerationJob
+try:
+    from .models import CertificateView
+    CERTIFICATE_VIEW_AVAILABLE = True
+except ImportError:
+    CERTIFICATE_VIEW_AVAILABLE = False
+    CertificateView = None
 from .serializers import CertificateSerializer
 from .services import (
     generate_for_students,
@@ -47,6 +53,10 @@ def _get_client_ip(request):
 
 def _log_certificate_view(certificate, student_requesting, request):
     """Log certificate view in database"""
+    if not CERTIFICATE_VIEW_AVAILABLE or CertificateView is None:
+        logger.warning("CertificateView model not available - skipping view logging")
+        return
+    
     try:
         ip = _get_client_ip(request)
         user_agent = request.META.get('HTTP_USER_AGENT', '')
@@ -1117,14 +1127,18 @@ def get_certificate_views(request, student_id):
     try:
         all_students = Student.objects.all().order_by("student_id")
         
-        # Check if CertificateView table exists (might not if migrations haven't run)
-        try:
-            views = CertificateView.objects.filter(certificate=certificate).select_related("student")
-            view_map = {view.student.student_id: view for view in views}
-        except Exception as view_exc:
-            logger.warning(f"CertificateView table might not exist yet: {view_exc}")
-            # Return empty view data if table doesn't exist
+        # Check if CertificateView is available
+        if not CERTIFICATE_VIEW_AVAILABLE or CertificateView is None:
+            logger.warning("CertificateView model not available - returning empty view data")
             view_map = {}
+        else:
+            # Try to query CertificateView
+            try:
+                views = CertificateView.objects.filter(certificate=certificate).select_related("student")
+                view_map = {view.student.student_id: view for view in views}
+            except Exception as view_exc:
+                logger.warning(f"Error querying CertificateView: {view_exc}")
+                view_map = {}
 
         viewed_students = []
         not_viewed_students = []
@@ -1155,6 +1169,7 @@ def get_certificate_views(request, student_id):
             "not_viewed_count": len(not_viewed_students),
             "viewed_students": viewed_students,
             "not_viewed_students": not_viewed_students,
+            "migration_warning": "Database migrations may not have been run. View tracking is disabled." if not CERTIFICATE_VIEW_AVAILABLE else None,
         })
     except Exception as exc:
         logger.exception("Error fetching certificate views for %s", student_id)
