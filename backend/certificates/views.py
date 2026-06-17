@@ -1030,8 +1030,8 @@ def view_certificate(request, student_id):
     try:
         student = Student.objects.get(student_id=student_id)
         _log_certificate_view(certificate, student, request)
-    except Student.DoesNotExist:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to log certificate view for {student_id}: {e}")
 
     return Response({
         **_certificate_response(request, certificate),
