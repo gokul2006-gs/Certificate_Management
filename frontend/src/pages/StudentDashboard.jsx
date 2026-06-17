@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Award, Calendar, IdCard, Mail, QrCode, ScanLine, ShieldCheck } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import api from "../services/api";
@@ -65,7 +65,7 @@ function StudentDashboard() {
             <div className="grid gap-4 sm:grid-cols-2">
               <InfoCard icon={IdCard} label="Student Identification" value={student.student_id} />
               <InfoCard icon={Mail} label="Contact Email" value={student.email} />
-              <InfoCard icon={Award} label="Enrolled Specialization" value={certificate?.course_name || "�"} />
+              <InfoCard icon={Award} label="Enrolled Specialization" value={certificate?.course_name || "—"} />
               <InfoCard
                 icon={ShieldCheck}
                 label="Certificate State"
@@ -124,13 +124,18 @@ function StudentDashboard() {
               </div>
 
               {certificate.qr && (
-                <div onClick={() => alert("📱 Please scan the QR code using your camera or QR scanner app to verify the certificate. Do not click on it!")} className="mx-auto block w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition duration-300 hover:scale-[1.05] hover:shadow-lg cursor-pointer">
+                <a
+                  href={certificate.verification_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mx-auto block w-full max-w-[240px] rounded-2xl border border-slate-100 bg-white p-4 shadow-md transition duration-300 hover:scale-[1.05] hover:shadow-lg"
+                >
                   <img
                     src={certificate.qr}
                     alt="Certificate QR code"
                     className="aspect-square w-full object-contain"
                   />
-                </div>
+                </a>
               )}
 
               <div className="mt-6 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400">
@@ -168,7 +173,5 @@ function InfoCard({ icon: Icon, label, value, customBadge }) {
 }
 
 export default StudentDashboard;
-
-
 
 
