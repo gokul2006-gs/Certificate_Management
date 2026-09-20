@@ -20,6 +20,7 @@ function buildCorsOrigins(primary) {
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://certificate-management-phi.vercel.app",
     "https://certificate-management-ravg.onrender.com",
     "https://certificate-management-1.onrender.com",
   ];
