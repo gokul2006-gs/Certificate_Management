@@ -1,0 +1,29 @@
+# Optional Render Blueprint — or copy these settings into your existing Web Service.
+services:
+  - type: web
+    name: smart-certificate-api
+    runtime: python
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: sh -c "python manage.py migrate && python manage.py ensure_admin && gunicorn config.wsgi --timeout 120 --workers 3 --threads 2"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,certificate-management-ravg.onrender.com,smart-certificate-management-and.onrender.com"
+      - key: FRONTEND_BASE_URL
+        value: "https://certificate-management-phi.vercel.app"
+      - key: FRONTEND_ALLOWED_ORIGINS
+        value: "https://certificate-management-phi.vercel.app,https://smart-certificate-management-and-verifica-gokul2006-gs-projects.vercel.app,https://smart-certificate-management-and-ve.vercel.app"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_NAME
+        value: "TS3"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
