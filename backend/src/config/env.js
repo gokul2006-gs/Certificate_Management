@@ -82,10 +82,11 @@ export const env = {
 
 export function cookieOptions() {
   const isProd = env.nodeEnv === "production";
+  const isCrossSite = isProd || env.frontendBaseUrl.startsWith("https://");
   return {
     httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
+    sameSite: isCrossSite ? "none" : "lax",
+    secure: isCrossSite,
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
