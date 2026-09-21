@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import sharp from "sharp";
 
 const DEFAULT_FIELD_LAYOUTS = {
@@ -5,6 +6,9 @@ const DEFAULT_FIELD_LAYOUTS = {
   course: { x1: 29, y1: 62, x2: 75, y2: 72 },
   issue_date: { x1: 30, y1: 75, x2: 70, y2: 82 },
 };
+const CERTIFICATE_FONT = readFileSync(
+  new URL("../../Great_Vibes/GreatVibes-Regular.ttf", import.meta.url)
+).toString("base64");
 
 function escapeXml(value) {
   return String(value || "")
@@ -56,12 +60,18 @@ export async function renderCertificateImage(templateBuffer, { name, courseName,
 
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        @font-face {
+          font-family: "CertificateText";
+          src: url("data:font/ttf;base64,${CERTIFICATE_FONT}");
+        }
+      </style>
       ${safeName ? `<text x="${nameBox.x}" y="${nameBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="700" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
+        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="CertificateText" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
       ${safeCourseName ? `<text x="${courseBox.x}" y="${courseBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="700" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
+        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="CertificateText" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
       ${safeIssueDate ? `<text x="${dateBox.x}" y="${dateBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="600" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
+        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="CertificateText" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
     </svg>
   `;
 
