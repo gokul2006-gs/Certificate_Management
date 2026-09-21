@@ -8,6 +8,8 @@ const DEFAULT_FIELD_LAYOUTS = {
 
 function escapeXml(value) {
   return String(value || "")
+    .normalize("NFC")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -55,11 +57,11 @@ export async function renderCertificateImage(templateBuffer, { name, courseName,
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       ${safeName ? `<text x="${nameBox.x}" y="${nameBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="Georgia, serif" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
+        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="700" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
       ${safeCourseName ? `<text x="${courseBox.x}" y="${courseBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="Georgia, serif" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
+        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="700" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
       ${safeIssueDate ? `<text x="${dateBox.x}" y="${dateBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="Georgia, serif" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
+        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="600" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
     </svg>
   `;
 
