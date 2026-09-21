@@ -1,5 +1,11 @@
 import sharp from "sharp";
 
+const DEFAULT_FIELD_LAYOUTS = {
+  name: { x1: 25, y1: 43, x2: 83, y2: 49 },
+  course: { x1: 29, y1: 62, x2: 75, y2: 72 },
+  issue_date: { x1: 30, y1: 75, x2: 70, y2: 82 },
+};
+
 function escapeXml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -21,23 +27,39 @@ function boxCenter(field, width, height) {
   };
 }
 
+function resolveTemplateField(fields, canonical, aliases = []) {
+  const source = fields && typeof fields === "object" ? fields : {};
+  const keys = [canonical, ...aliases];
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) {
+      return source[key];
+    }
+  }
+  return DEFAULT_FIELD_LAYOUTS[canonical];
+}
+
 export async function renderCertificateImage(templateBuffer, { name, courseName, issueDate, fields }) {
   const image = sharp(templateBuffer);
   const meta = await image.metadata();
   const width = meta.width || 1200;
   const height = meta.height || 800;
-  const nameBox = boxCenter(fields?.name, width, height);
-  const courseBox = boxCenter(fields?.course, width, height);
-  const dateBox = boxCenter(fields?.issue_date, width, height);
+
+  const nameBox = boxCenter(resolveTemplateField(fields, "name", ["student_name", "studentName"]), width, height);
+  const courseBox = boxCenter(resolveTemplateField(fields, "course", ["course_name", "courseName"]), width, height);
+  const dateBox = boxCenter(resolveTemplateField(fields, "issue_date", ["date", "issueDate"]), width, height);
+
+  const safeName = String(name || "").trim();
+  const safeCourseName = String(courseName || "").trim();
+  const safeIssueDate = String(issueDate || "").trim();
 
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <text x="${nameBox.x}" y="${nameBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="Georgia, serif" fill="#1e293b">${escapeXml(name)}</text>
-      <text x="${courseBox.x}" y="${courseBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="Georgia, serif" fill="#0f172a">${escapeXml(courseName)}</text>
-      <text x="${dateBox.x}" y="${dateBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="Georgia, serif" fill="#334155">${escapeXml(issueDate)}</text>
+      ${safeName ? `<text x="${nameBox.x}" y="${nameBox.y}" text-anchor="middle" dominant-baseline="middle"
+        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="Georgia, serif" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
+      ${safeCourseName ? `<text x="${courseBox.x}" y="${courseBox.y}" text-anchor="middle" dominant-baseline="middle"
+        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="Georgia, serif" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
+      ${safeIssueDate ? `<text x="${dateBox.x}" y="${dateBox.y}" text-anchor="middle" dominant-baseline="middle"
+        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="Georgia, serif" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
     </svg>
   `;
 

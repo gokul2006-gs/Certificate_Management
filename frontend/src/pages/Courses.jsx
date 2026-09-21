@@ -42,6 +42,8 @@ function Courses() {
     }
   };
 
+  // The loader updates the fetched collection and error state from one API response.
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { loadCourses(); }, []);
 
   // Debounce search to avoid re-rendering grouped table on every keystroke

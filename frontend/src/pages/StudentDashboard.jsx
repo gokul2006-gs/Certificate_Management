@@ -13,7 +13,7 @@ function StudentDashboard() {
   useEffect(() => {
     const studentId = AuthService.getStudentId();
     if (!studentId) {
-      setMessage("Please login again");
+      Promise.resolve().then(() => setMessage("Please login again"));
       return;
     }
 
@@ -186,5 +186,3 @@ function InfoCard({ icon: Icon, label, value, customBadge }) {
 }
 
 export default StudentDashboard;
-
-
