@@ -22,7 +22,7 @@ export default function CertificateTemplateEditor({ imageUrl, onChange }) {
 
   useEffect(() => {
     if (onChange) onChange(fields);
-  }, [fields]);
+  }, [fields, onChange]);
 
   const getPct = useCallback((clientX, clientY) => {
     const rect = containerRef.current.getBoundingClientRect();

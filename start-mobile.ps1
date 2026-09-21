@@ -13,7 +13,7 @@ if (-not $lanIp) {
 }
 
 $frontendUrl = "http://$lanIp:5173"
-$apiUrl = "http://$lanIp:8000/api"
+$apiUrl = "http://$lanIp:5000/api"
 
 Write-Host ""
 Write-Host "Mobile QR setup"
@@ -23,7 +23,7 @@ Write-Host "Frontend URL:  $frontendUrl"
 Write-Host "API URL:       $apiUrl"
 Write-Host ""
 Write-Host "1. Phone and PC must be on the same Wi-Fi."
-Write-Host "2. Allow Python and Node through Windows Firewall if prompted."
+Write-Host "2. Allow Node through Windows Firewall if prompted."
 Write-Host "3. After upload, scan QR on phone -> opens verify page."
 Write-Host ""
 
@@ -37,7 +37,7 @@ $env:FRONTEND_BASE_URL = $frontendUrl
 Start-Process powershell -ArgumentList @(
     "-NoExit",
     "-Command",
-    "cd '$PSScriptRoot\backend'; `$env:FRONTEND_BASE_URL='$frontendUrl'; python manage.py runserver 0.0.0.0:8000"
+    "cd '$PSScriptRoot\backend'; `$env:FRONTEND_BASE_URL='$frontendUrl'; `$env:API_PUBLIC_URL='http://$lanIp:5000'; npm run dev -- --host 0.0.0.0"
 )
 
 Start-Process powershell -ArgumentList @(
@@ -48,4 +48,3 @@ Start-Process powershell -ArgumentList @(
 
 Write-Host "Started backend and frontend in new windows."
 Write-Host "Open on phone: $frontendUrl"
-Write-Host "Regenerate old QR codes with: cd backend; `$env:FRONTEND_BASE_URL='$frontendUrl'; python manage.py regenerate_qr_codes"

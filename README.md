@@ -1,112 +1,83 @@
-# Smart-Certificate-Management-and-Verification-System
-# 🎓 Smart Certificate Management and Verification System
+# Smart Certificate Management and Verification System
 
-A full-stack web application developed using **React.js, Django REST Framework, and MySQL** for managing students, certificates, and QR-based certificate verification.
-
----
-
-## 📌 Project Overview
-
-The Smart Certificate Management and Verification System automates the complete certificate lifecycle, including:
-
-* Student Registration
-* Excel-Based Bulk Student Upload
-* Certificate Upload
-* QR Code Generation
-* Certificate Verification
-* Student Dashboard
-* Admin Dashboard
-
-The system helps organizations manage internships, training programs, and certifications efficiently while preventing certificate fraud through QR-based verification.
+A full-stack MERN-style web application for managing student records, certificate issuance, QR verification, and course data. The project uses a React frontend and a Node.js/Express backend with MongoDB storage.
 
 ---
 
-## 🚀 Features
+## Project Overview
+
+This system automates the complete certificate lifecycle:
+
+- Student registration and login
+- Course management
+- Certificate upload and bulk generation
+- QR code generation and verification
+- Student dashboard and admin dashboard
+- Certificate download and status tracking
+
+---
+
+## Features
 
 ### Admin Module
 
-* Admin Login
-* Dashboard Statistics
-* Excel-Based Student Upload
-* Student Management (CRUD)
-* Certificate Upload
-* Bulk Certificate Upload (ZIP Support)
-* Automatic QR Code Generation
-* Certificate Management
+- Admin login
+- Dashboard statistics
+- Student management
+- Course management
+- Certificate upload
+- Bulk certificate processing
+- Template-based certificate generation
+- QR verification setup
 
 ### Student Module
 
-* Student Login
-* Student Dashboard
-* Profile View
-* Course Details
-* Certificate Download
-* QR Code View
+- Student login
+- Dashboard overview
+- Profile view
+- Course details
+- Certificate download
+- Verification page access
 
 ### Certificate Verification
 
-* QR Code Scanning
-* Verification Page
-* Certificate Validation
-* Certificate Download Access
+- QR code scanning
+- Verification page
+- Certificate validation
+- Download access control
 
 ---
 
-## 🏗️ System Architecture
-
-```text
-React Frontend
-       │
-       ▼
-Django REST API
-       │
-       ▼
-MySQL Database
-       │
-       ▼
-Certificate Storage
-       │
-       ▼
-QR Verification System
-```
-
----
-
-## 🛠️ Technology Stack
+## Tech Stack
 
 ### Frontend
 
-* React.js
-* Vite
-* Tailwind CSS
-* Axios
-* React Router DOM
-* Lucide React
+- React
+- Vite
+- Tailwind CSS
+- Axios
+- React Router
+- Lucide React
 
 ### Backend
 
-* Django
-* Django REST Framework
+- Node.js
+- Express.js
+- MongoDB with Mongoose
+- JWT authentication
+- Helmet, CORS, rate limiting
 
-### Database
+### Storage / Media
 
-* MySQL
-
-### Python Libraries
-
-* Pandas
-* OpenPyXL
-* QRCode
-* Pillow
-* PyMySQL
+- Local file storage or cloud storage adapters
+- QR image generation
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
-TS3/
-│
+Certificate_Management/
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -114,100 +85,51 @@ TS3/
 │   └── vite.config.js
 │
 ├── backend/
-│   ├── accounts/
-│   ├── certificates/
-│   ├── courses/
-│   ├── config/
-│   ├── manage.py
-│   └── requirements.txt
+│   ├── src/
+│   ├── package.json
+│   ├── Dockerfile
+│   └── .env.example
 │
-└── README.md
+├── README.md
+├── render.yaml
+└── vercel.json
 ```
 
 ---
 
-## ⚙️ Installation
+## Installation
 
-### Clone Repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/gokul2006-gs/Smart-Certificate-Management-and-Verification-System.git
+git clone https://github.com/gokul2006-gs/Certificate_Management.git
+cd Certificate_Management
 ```
 
----
-
-## Backend Setup
+### 2. Backend setup
 
 ```bash
 cd backend
-
-python -m venv venv
-
-venv\Scripts\activate
-
-pip install -r requirements.txt
-```
-
-### Database Configuration
-
-Update `settings.py`
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'TS3',
-        'USER': 'root',
-        'PASSWORD': '*',
-        'HOST': 'localhost',
-        'PORT': '3306'
-    }
-}
-```
-
-### Run Migrations
-
-```bash
-python manage.py makemigrations
-
-python manage.py migrate
-```
-
-### Create Admin
-
-```bash
-python manage.py createsuperuser
-```
-
-### Run Backend
-
-```bash
-python manage.py runserver
-```
-
-Backend runs on:
-
-```text
-http://127.0.0.1:8000
-```
-
----
-
-## Frontend Setup
-
-```bash
-cd frontend
-
 npm install
-```
-
-### Run Frontend
-
-```bash
+cp .env.example .env
 npm run dev
 ```
 
-Frontend runs on:
+The backend runs on:
+
+```text
+http://localhost:5000
+```
+
+### 3. Frontend setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs on:
 
 ```text
 http://localhost:5173
@@ -215,9 +137,16 @@ http://localhost:5173
 
 ---
 
-## API Endpoints
+## Environment
 
-### Accounts
+Set the required app variables in `backend/.env`, including database, JWT, storage, and frontend URL configuration before running the application.
+
+---
+
+## Notes
+
+This repository no longer uses the legacy Python/Django implementation and has been migrated to the current Node.js + MongoDB stack.
+
 
 ```http
 POST /api/accounts/login/

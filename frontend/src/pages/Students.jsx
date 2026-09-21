@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import Pagination from "../components/Pagination";
@@ -25,6 +25,8 @@ function Students() {
     setPage(r.data.page || nextPage);
   };
 
+  // The loader updates several related pagination states from one API response.
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { load(1, query); }, [query]);
 
   useEffect(() => {

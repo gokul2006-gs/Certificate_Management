@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Ban, Download, FileUp, Files, Upload, AlertCircle } from "lucide-react";
+import { BadgeCheck, Download, FileUp, Files, Upload, AlertCircle } from "lucide-react";
 import Layout, { PageHeader } from "../components/Layout";
 import CertificateTemplateEditor from "../components/CertificateTemplateEditor";
-import Pagination from "../components/Pagination";
 import api, { formatApiError } from "../services/api";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -34,17 +33,6 @@ function UploadCertificate() {
   const [templateProgress, setTemplateProgress] = useState(0);
   const [activeJobId, setActiveJobId] = useState(null);
   const [expiresAt, setExpiresAt] = useState("");
-  const [issued, setIssued] = useState([]);
-  const [issuedPage, setIssuedPage] = useState(1);
-  const [issuedTotalPages, setIssuedTotalPages] = useState(1);
-
-  const loadIssued = async (page = 1) => {
-    const r = await api.get("/certificates", { params: { page, pageSize: 8 } });
-    setIssued(r.data.items || []);
-    setIssuedPage(r.data.page || 1);
-    setIssuedTotalPages(r.data.totalPages || 1);
-  };
-
   useEffect(() => {
     Promise.all([
       api.get("/students"),
@@ -53,7 +41,6 @@ function UploadCertificate() {
       setStudents(sRes.data.items || sRes.data);
       setCourses(cRes.data.items || cRes.data);
     });
-    loadIssued(1);
   }, []);
 
   const selectedCourseName = useMemo(() => {
@@ -78,7 +65,6 @@ function UploadCertificate() {
       setResult(r.data);
       setMessage("Certificate generated successfully.");
       setStudentId(""); setFile(null);
-      loadIssued(1);
       const fi = document.getElementById("single-cert-file");
       if (fi) fi.value = "";
     } catch (err) {
@@ -503,7 +489,6 @@ function UploadCertificate() {
 }
 
 export default UploadCertificate;
-
 
 
 
