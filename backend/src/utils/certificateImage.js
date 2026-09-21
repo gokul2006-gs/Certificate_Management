@@ -1,24 +1,21 @@
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
+import opentype from "opentype.js";
 
 const DEFAULT_FIELD_LAYOUTS = {
   name: { x1: 25, y1: 43, x2: 83, y2: 49 },
   course: { x1: 29, y1: 62, x2: 75, y2: 72 },
   issue_date: { x1: 30, y1: 75, x2: 70, y2: 82 },
 };
-const CERTIFICATE_FONT = readFileSync(
+const GREAT_VIBES_FONT_BUFFER = readFileSync(
   new URL("../../Great_Vibes/GreatVibes-Regular.ttf", import.meta.url)
-).toString("base64");
-
-function escapeXml(value) {
-  return String(value || "")
-    .normalize("NFC")
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
+);
+const GREAT_VIBES_FONT = opentype.parse(
+  GREAT_VIBES_FONT_BUFFER.buffer.slice(
+    GREAT_VIBES_FONT_BUFFER.byteOffset,
+    GREAT_VIBES_FONT_BUFFER.byteOffset + GREAT_VIBES_FONT_BUFFER.byteLength
+  )
+);
 
 function boxCenter(field, width, height) {
   const x1 = ((field?.x1 ?? 0) / 100) * width;
@@ -44,6 +41,21 @@ function resolveTemplateField(fields, canonical, aliases = []) {
   return DEFAULT_FIELD_LAYOUTS[canonical];
 }
 
+function textPath(text, box, width, height, fontSize) {
+  const size = Math.max(fontSize, Math.round(box.boxHeight * 0.72));
+  const scale = size / GREAT_VIBES_FONT.unitsPerEm;
+  const glyphs = Array.from(text, (character) => GREAT_VIBES_FONT.charToGlyph(character));
+  const measured = glyphs.reduce((total, glyph) => total + glyph.advanceWidth * scale, 0);
+  const x = Math.max(0, Math.min(width - measured, box.x - measured / 2));
+  const baseline = Math.max(size, Math.min(height, box.y + size * 0.35));
+  let cursor = x;
+  return glyphs.map((glyph) => {
+    const path = glyph.getPath(cursor, baseline, size).toPathData(2);
+    cursor += glyph.advanceWidth * scale;
+    return path;
+  }).join(" ");
+}
+
 export async function renderCertificateImage(templateBuffer, { name, courseName, issueDate, fields }) {
   const image = sharp(templateBuffer);
   const meta = await image.metadata();
@@ -57,21 +69,15 @@ export async function renderCertificateImage(templateBuffer, { name, courseName,
   const safeName = String(name || "").trim();
   const safeCourseName = String(courseName || "").trim();
   const safeIssueDate = String(issueDate || "").trim();
+  const namePath = safeName ? textPath(safeName, nameBox, width, height, 22) : "";
+  const coursePath = safeCourseName ? textPath(safeCourseName, courseBox, width, height, 16) : "";
+  const datePath = safeIssueDate ? textPath(safeIssueDate, dateBox, width, height, 14) : "";
 
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <style>
-        @font-face {
-          font-family: "CertificateText";
-          src: url("data:font/ttf;base64,${CERTIFICATE_FONT}");
-        }
-      </style>
-      ${safeName ? `<text x="${nameBox.x}" y="${nameBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(22, Math.round(nameBox.boxHeight * 0.72))}" font-family="CertificateText" fill="#1e293b">${escapeXml(safeName)}</text>` : ""}
-      ${safeCourseName ? `<text x="${courseBox.x}" y="${courseBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(16, Math.round(courseBox.boxHeight * 0.55))}" font-family="CertificateText" fill="#0f172a">${escapeXml(safeCourseName)}</text>` : ""}
-      ${safeIssueDate ? `<text x="${dateBox.x}" y="${dateBox.y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="${Math.max(14, Math.round(dateBox.boxHeight * 0.5))}" font-family="CertificateText" fill="#334155">${escapeXml(safeIssueDate)}</text>` : ""}
+      ${namePath ? `<path d="${namePath}" fill="#1e293b"/>` : ""}
+      ${coursePath ? `<path d="${coursePath}" fill="#0f172a"/>` : ""}
+      ${datePath ? `<path d="${datePath}" fill="#334155"/>` : ""}
     </svg>
   `;
 
