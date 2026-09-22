@@ -6,38 +6,74 @@ import { setSessionCookie, clearSessionCookie, readSession } from "../middleware
 import { clientIp } from "../utils/http.js";
 
 export async function adminLogin(req, res) {
+  const totalStart = performance.now();
+
   const { username, password } = req.body;
   const normalizedUsername = String(username || "").trim().toUpperCase();
+
+  const dbStart = performance.now();
   const admin = await Admin.findOne({ username: normalizedUsername }).select("+passwordHash");
-  if (!admin || !(await bcrypt.compare(password, admin.passwordHash))) {
+  console.log("MongoDB query:", (performance.now() - dbStart).toFixed(2), "ms");
+
+  const passwordStart = performance.now();
+  const isMatch = admin && (await bcrypt.compare(password, admin.passwordHash));
+  console.log("Password compare:", (performance.now() - passwordStart).toFixed(2), "ms");
+
+  if (!admin || !isMatch) {
+    console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
     return res.status(400).json({ error: "Invalid admin credentials" });
   }
+
   const log = await AdminLoginLog.create({
     username: admin.username,
     ipAddress: clientIp(req),
     userAgent: req.headers["user-agent"] || "",
   });
+
+  const jwtStart = performance.now();
   setSessionCookie(res, {
     role: "admin",
     username: admin.username,
     adminId: String(admin._id),
     logId: String(log._id),
   });
+  console.log("JWT generation:", (performance.now() - jwtStart).toFixed(2), "ms");
+
+  console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
   res.json({ message: "Admin login success", role: "admin", username: admin.username });
 }
 
 export async function studentLogin(req, res) {
+  const totalStart = performance.now();
   const studentId = String(req.body.student_id).trim().toUpperCase();
+
+  const dbStart = performance.now();
   const student = await Student.findOne({ studentId }).select("+passwordHash");
-  if (!student) return res.status(400).json({ error: "Student not found" });
-  if (!(await bcrypt.compare(req.body.password, student.passwordHash))) {
+  console.log("MongoDB query:", (performance.now() - dbStart).toFixed(2), "ms");
+
+  if (!student) {
+    console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
+    return res.status(400).json({ error: "Student not found" });
+  }
+
+  const passwordStart = performance.now();
+  const isMatch = await bcrypt.compare(req.body.password, student.passwordHash);
+  console.log("Password compare:", (performance.now() - passwordStart).toFixed(2), "ms");
+
+  if (!isMatch) {
+    console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
     return res.status(400).json({ error: "Invalid password" });
   }
+
+  const jwtStart = performance.now();
   setSessionCookie(res, {
     role: "student",
     studentId: student.studentId,
     studentMongoId: String(student._id),
   });
+  console.log("JWT generation:", (performance.now() - jwtStart).toFixed(2), "ms");
+
+  console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
   res.json({
     message: "Student login success",
     role: "student",
