@@ -24,11 +24,17 @@ export async function adminLogin(req, res) {
     return res.status(400).json({ error: "Invalid admin credentials" });
   }
 
+  const logStart = performance.now();
   const log = await AdminLoginLog.create({
     username: admin.username,
     ipAddress: clientIp(req),
     userAgent: req.headers["user-agent"] || "",
   });
+  console.log(
+    "Login log DB insert:",
+    (performance.now() - logStart).toFixed(2),
+    "ms"
+  );
 
   const jwtStart = performance.now();
   setSessionCookie(res, {
@@ -37,7 +43,7 @@ export async function adminLogin(req, res) {
     adminId: String(admin._id),
     logId: String(log._id),
   });
-  console.log("JWT generation:", (performance.now() - jwtStart).toFixed(2), "ms");
+  console.log("Session cookie:", (performance.now() - jwtStart).toFixed(2), "ms");
 
   console.log("TOTAL:", (performance.now() - totalStart).toFixed(2), "ms");
   res.json({ message: "Admin login success", role: "admin", username: admin.username });
