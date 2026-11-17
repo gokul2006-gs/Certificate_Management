@@ -1,10 +1,7 @@
-import dns from "node:dns";
 import { connectDb } from "./config/db.js";
 import { env } from "./config/env.js";
 import { createApp } from "./app.js";
 import { startWorker } from "./jobs/queue.js";
-
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const app = createApp();
 
