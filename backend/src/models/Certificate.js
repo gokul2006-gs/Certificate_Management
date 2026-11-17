@@ -21,6 +21,9 @@ const certificateSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+certificateSchema.index({ status: 1, expiresAt: 1 });
+certificateSchema.index({ issueDate: 1 });
+
 certificateSchema.methods.resolveStatus = function resolveStatus() {
   if (this.status === "REVOKED") return "REVOKED";
   if (this.expiresAt && this.expiresAt.getTime() < Date.now()) return "EXPIRED";

@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   --color-primary-50: #f0f9ff;
   --color-primary-100: #e0f2fe;
@@ -95,6 +96,66 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html.dark body {
+  background: #080f1c;
+  color: #e2e8f0;
+}
+
+html.dark [class~="bg-white"],
+html.dark [class~="bg-slate-50"],
+html.dark [class~="bg-slate-50/50"],
+html.dark [class~="bg-slate-100"] {
+  background-color: #111b2b;
+}
+
+html.dark [class~="bg-slate-200"] {
+  background-color: #243247;
+}
+
+html.dark [class~="border-slate-100"],
+html.dark [class~="border-slate-200"],
+html.dark [class~="border-slate-200/60"] {
+  border-color: #243247;
+}
+
+html.dark [class~="text-slate-950"],
+html.dark [class~="text-slate-900"],
+html.dark [class~="text-slate-800"],
+html.dark [class~="text-slate-700"] {
+  color: #e2e8f0;
+}
+
+html.dark [class~="text-slate-600"],
+html.dark [class~="text-slate-500"] {
+  color: #a7b4c7;
+}
+
+html.dark [class~="text-slate-400"] {
+  color: #8493a8;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color-scheme: dark;
+}
+
+html.dark .glass-panel {
+  background: rgba(17, 27, 43, 0.88);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 #root {
