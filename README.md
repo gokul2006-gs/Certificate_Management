@@ -1,217 +1,43 @@
-# Smart Certificate Management and Verification System
+# Certificate Management
 
-A full-stack MERN-style web application for managing student records, certificate issuance, QR verification, and course data. The project uses a React frontend and a Node.js/Express backend with MongoDB storage.
+Certificate Management is a React application backed exclusively by a Java 21 Spring Boot REST API and MongoDB.
 
----
-
-## Project Overview
-
-This system automates the complete certificate lifecycle:
-
-- Student registration and login
-- Course management
-- Certificate upload and bulk generation
-- QR code generation and verification
-- Student dashboard and admin dashboard
-- Certificate download and status tracking
-
----
-
-## Features
-
-### Admin Module
-
-- Admin login
-- Dashboard statistics
-- Student management
-- Course management
-- Certificate upload
-- Bulk certificate processing
-- Template-based certificate generation
-- QR verification setup
-
-### Student Module
-
-- Student login
-- Dashboard overview
-- Profile view
-- Course details
-- Certificate download
-- Verification page access
-
-### Certificate Verification
-
-- QR code scanning
-- Verification page
-- Certificate validation
-- Download access control
-
----
-
-## Tech Stack
-
-### Frontend
-
-- React
-- Vite
-- Tailwind CSS
-- Axios
-- React Router
-- Lucide React
-
-### Backend
-
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JWT authentication
-- Helmet, CORS, rate limiting
-
-### Storage / Media
-
-- Local file storage or cloud storage adapters
-- QR image generation
-
----
-
-## Project Structure
+## Architecture
 
 ```text
-Certificate_Management/
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/
-│   ├── src/
-│   ├── package.json
-│   ├── Dockerfile
-│   └── .env.example
-│
-├── README.md
-├── render.yaml
-└── vercel.json
+React + Tailwind CSS → REST API → Java 21 / Spring Boot → MongoDB Atlas
 ```
 
----
+The backend is in [`backend/`](./backend/). It uses Spring Security, stateless JWT session cookies, Spring Data MongoDB, Jakarta Bean Validation, and Maven. It provides student/admin authentication, student and course management, Excel imports, certificate uploads and PDF generation, QR verification, expiry alerts, email notifications, audit history, and paginated dashboard APIs.
 
-## Installation
+## Run locally
 
-### 1. Clone the repository
+Requirements: Java 21+, Maven 3.9+, MongoDB, and Node.js for the React frontend only.
 
-```bash
-git clone https://github.com/gokul2006-gs/Certificate_Management.git
-cd Certificate_Management
-```
+1. Copy `backend/.env.example` to `backend/.env` and set `MONGODB_URI`, `JWT_SECRET` (at least 32 characters), and `ADMIN_PASSWORD`.
+2. Start the API:
 
-### 2. Backend setup
+   ```powershell
+   cd backend
+   mvn spring-boot:run
+   ```
 
-```bash
+3. In another terminal, install frontend dependencies and start Vite:
+
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+The API listens on port `8080`, the frontend on port `5173`, and the health check is `http://localhost:8080/api/health`. The initial administrator is created on first startup only when `ADMIN_PASSWORD` is configured.
+
+## Backend checks
+
+```powershell
 cd backend
-npm install
-cp .env.example .env
-npm run dev
+mvn test
+mvn package
 ```
 
-The backend runs on:
-
-```text
-http://localhost:5000
-```
-
-### 3. Frontend setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend runs on:
-
-```text
-http://localhost:5173
-```
-
----
-
-## Environment
-
-Set the required app variables in `backend/.env`, including database, JWT, storage, and frontend URL configuration before running the application.
-
----
-
-## Notes
-
-This repository no longer uses the legacy Python/Django implementation and has been migrated to the current Node.js + MongoDB stack.
-
-
-```http
-POST /api/accounts/login/
-
-POST /api/accounts/upload-excel/
-
-GET /api/accounts/students/
-
-GET /api/accounts/profile/<student_id>/
-```
-
-### Certificates
-
-```http
-POST /api/certificates/upload/
-
-POST /api/certificates/bulk-upload/
-
-GET /api/certificates/view/<student_id>/
-
-GET /api/certificates/verify/<student_id>/
-```
-
----
-
-## Workflow
-
-```text
-Admin Login
-      ↓
-Upload Excel File
-      ↓
-Students Created
-      ↓
-Upload Certificates
-      ↓
-QR Codes Generated
-      ↓
-Student Login
-      ↓
-Download Certificate
-      ↓
-Scan QR Code
-      ↓
-Certificate Verification
-```
-
----
-
-## Future Enhancements
-
-* Email Certificate Delivery
-* WhatsApp Integration
-* Digital Signature Verification
-* Certificate Expiry Tracking
-* Docker Deployment
-* Cloud Hosting
-* Mobile Application
-
----
-
-## Project Outcome
-
-The system successfully automates certificate management, reduces manual effort, improves security through QR verification, and provides a scalable solution for internship and training certificate management.
-
----
-
-
+`backend/Dockerfile` builds and runs the Java API on Render. Set MongoDB Atlas, JWT, admin, cookie, storage, and optional SMTP variables in the deployment environment. See [`backend/.env.production.example`](./backend/.env.production.example) for the variable names.

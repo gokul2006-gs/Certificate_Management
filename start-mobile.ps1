@@ -13,7 +13,7 @@ if (-not $lanIp) {
 }
 
 $frontendUrl = "http://$lanIp:5173"
-$apiUrl = "http://$lanIp:5000/api"
+$apiUrl = "http://$lanIp:8080/api"
 
 Write-Host ""
 Write-Host "Mobile QR setup"
@@ -23,7 +23,7 @@ Write-Host "Frontend URL:  $frontendUrl"
 Write-Host "API URL:       $apiUrl"
 Write-Host ""
 Write-Host "1. Phone and PC must be on the same Wi-Fi."
-Write-Host "2. Allow Node through Windows Firewall if prompted."
+Write-Host "2. Start the Spring Boot API and allow Java through Windows Firewall if prompted."
 Write-Host "3. After upload, scan QR on phone -> opens verify page."
 Write-Host ""
 
@@ -37,7 +37,7 @@ $env:FRONTEND_BASE_URL = $frontendUrl
 Start-Process powershell -ArgumentList @(
     "-NoExit",
     "-Command",
-    "cd '$PSScriptRoot\backend'; `$env:FRONTEND_BASE_URL='$frontendUrl'; `$env:API_PUBLIC_URL='http://$lanIp:5000'; npm run dev -- --host 0.0.0.0"
+    "cd '$PSScriptRoot\backend'; `$env:FRONTEND_BASE_URL='$frontendUrl'; `$env:API_PUBLIC_URL='http://$lanIp:8080'; `$env:CORS_ORIGIN='$frontendUrl'; mvn spring-boot:run"
 )
 
 Start-Process powershell -ArgumentList @(

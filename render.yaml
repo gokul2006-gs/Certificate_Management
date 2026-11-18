@@ -1,14 +1,17 @@
-# Render Blueprint for the Node/Express API.
+# Render Blueprint for the Spring Boot API.
 services:
   - type: web
     name: smart-certificate-api
-    runtime: node
+    runtime: docker
     rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    disk:
+      name: certificate-uploads
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
-      - key: NODE_ENV
-        value: "production"
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_BASE_URL
@@ -17,9 +20,21 @@ services:
         value: "https://certificate-management-phi.vercel.app"
       - key: API_PUBLIC_URL
         value: "https://certificate-management-1.onrender.com"
+      - key: PORT
+        value: "8080"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAME_SITE
+        value: "None"
+      - key: UPLOAD_ROOT
+        value: "/var/data/uploads"
+      - key: ADMIN_USERNAME
+        value: "admin"
       - key: MONGODB_URI
         sync: false
       - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
       - key: DEFAULT_STUDENT_PASSWORD
         sync: false

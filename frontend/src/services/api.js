@@ -11,12 +11,13 @@ function normalizeApiBaseUrl(url) {
 function resolveApiBaseUrl() {
   const configured = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (configured) return normalizeApiBaseUrl(configured);
-  const apiPort = import.meta.env.VITE_API_PORT || "5000";
+  const apiPort = import.meta.env.VITE_API_PORT || "8080";
   const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:${apiPort}/api`;
 }
 
 export const UPLOAD_TIMEOUT_MS = 120000;
+let csrfToken = null;
 
 const api = axios.create({
   baseURL: resolveApiBaseUrl(),
@@ -24,8 +25,29 @@ const api = axios.create({
   timeout: UPLOAD_TIMEOUT_MS,
 });
 
+api.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase();
+  const isSafeMethod = ["get", "head", "options"].includes(method);
+  if (isSafeMethod) return config;
+  const tokenRequest = csrfToken
+    ? Promise.resolve(csrfToken)
+    : axios.get(`${api.defaults.baseURL}/auth/csrf`, { withCredentials: true, timeout: UPLOAD_TIMEOUT_MS })
+        .then(({ data }) => {
+          csrfToken = data.csrfToken;
+          return csrfToken;
+        });
+  return tokenRequest.then((token) => {
+    config.headers["X-CSRF-Token"] = token;
+    return config;
+  });
+});
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const responseToken = response.headers["x-csrf-token"];
+    if (responseToken) csrfToken = responseToken;
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config || {};
     const method = originalRequest.method?.toLowerCase();
