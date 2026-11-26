@@ -11,6 +11,8 @@ function normalizeApiBaseUrl(url) {
 function resolveApiBaseUrl() {
   const configured = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (configured) return normalizeApiBaseUrl(configured);
+  const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (!isLocalHost) return "/api";
   const apiPort = import.meta.env.VITE_API_PORT || "8080";
   const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:${apiPort}/api`;

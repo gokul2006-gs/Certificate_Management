@@ -19,7 +19,7 @@ services:
       - key: CORS_ORIGIN
         value: "https://certificate-management-phi.vercel.app"
       - key: API_PUBLIC_URL
-        value: "https://certificate-management-1.onrender.com"
+        value: "https://certificate-management-3.onrender.com"
       - key: PORT
         value: "8080"
       - key: COOKIE_SECURE
